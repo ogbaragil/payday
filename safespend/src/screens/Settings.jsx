@@ -1,10 +1,14 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import {
   ChevronRight,
   Download,
   Upload,
   Trash2,
   CloudOff,
+  Cloud,
+  UploadCloud,
+  DownloadCloud,
+  LogOut,
   Check,
   Coins,
   CalendarClock,
@@ -13,8 +17,11 @@ import {
 import { Card } from "../components/ui/Card.jsx";
 import Sheet from "../components/ui/Sheet.jsx";
 import Button from "../components/ui/Button.jsx";
+import AuthSheet from "../components/AuthSheet.jsx";
 import { useApp } from "../context/AppContext.jsx";
-import { CURRENCIES, FREQUENCY_LABELS, formatDateLong, toISODate, today } from "../lib/format.js";
+import { useAuth } from "../context/AuthContext.jsx";
+import { pushBackup, pullBackup, getBackupMeta } from "../lib/cloud.js";
+import { CURRENCIES, FREQUENCY_LABELS, formatDateLong, toISODate, today, relativeTime } from "../lib/format.js";
 
 function Row({ icon: Icon, label, value, onClick, danger }) {
   return (
@@ -132,19 +139,8 @@ export default function Settings() {
         />
       </div>
 
-      {/* Account sync placeholder */}
-      <Card className="flex items-center gap-3 p-4">
-        <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-elevated text-muted">
-          <CloudOff size={18} />
-        </span>
-        <div className="flex-1">
-          <p className="text-[15px] font-semibold">Account sync</p>
-          <p className="text-[13px] text-muted">Coming soon — back up and sync across devices.</p>
-        </div>
-        <span className="rounded-full bg-elevated px-3 py-1 text-[12px] font-semibold text-muted">
-          Soon
-        </span>
-      </Card>
+      {/* Account + cloud sync */}
+      <AccountCard onToast={flash} />
 
       <p className="px-2 text-center text-[12px] text-faint">
         SafeSpend · saved on this device
@@ -302,5 +298,185 @@ function ResetSheet({ open, onClose, onConfirm }) {
         </p>
       </div>
     </Sheet>
+  );
+}
+
+// --- Account + cloud sync ---------------------------------------------------
+function AccountCard({ onToast }) {
+  const { configured, user, email, signOut } = useAuth();
+  const { exportData, importData } = useApp();
+  const [authOpen, setAuthOpen] = useState(false);
+  const [authMode, setAuthMode] = useState("signin");
+  const [confirmRestore, setConfirmRestore] = useState(false);
+  const [busy, setBusy] = useState(null); // 'backup' | 'restore' | null
+  const [lastBackup, setLastBackup] = useState(null);
+
+  useEffect(() => {
+    let active = true;
+    if (user) {
+      getBackupMeta()
+        .then((t) => active && setLastBackup(t))
+        .catch(() => {});
+    } else {
+      setLastBackup(null);
+    }
+    return () => {
+      active = false;
+    };
+  }, [user]);
+
+  const openAuth = (mode) => {
+    setAuthMode(mode);
+    setAuthOpen(true);
+  };
+
+  const backup = async () => {
+    setBusy("backup");
+    try {
+      const data = await exportData();
+      await pushBackup(data);
+      setLastBackup(new Date().toISOString());
+      onToast("Backed up to cloud");
+    } catch (e) {
+      onToast(e?.message || "Backup failed");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const restore = async () => {
+    setConfirmRestore(false);
+    setBusy("restore");
+    try {
+      const row = await pullBackup();
+      if (!row?.payload) {
+        onToast("No cloud backup yet");
+        return;
+      }
+      await importData(row.payload);
+      onToast("Restored from cloud");
+    } catch (e) {
+      onToast(e?.message || "Restore failed");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  // Supabase not configured — keep the gentle placeholder.
+  if (!configured) {
+    return (
+      <Card className="flex items-center gap-3 p-4">
+        <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-elevated text-muted">
+          <CloudOff size={18} />
+        </span>
+        <div className="flex-1">
+          <p className="text-[15px] font-semibold">Account sync</p>
+          <p className="text-[13px] text-muted">
+            Add your Supabase keys to enable cloud backup.
+          </p>
+        </div>
+      </Card>
+    );
+  }
+
+  // Signed out — invite to create an account / sign in.
+  if (!user) {
+    return (
+      <>
+        <p className="mb-2 px-2 text-[12px] font-semibold uppercase tracking-wide text-muted">
+          Cloud sync
+        </p>
+        <Card className="p-5">
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-jade-soft text-jade">
+              <Cloud size={18} />
+            </span>
+            <div className="flex-1">
+              <p className="text-[15px] font-semibold">Back up to the cloud</p>
+              <p className="text-[13px] text-muted">
+                Sign in to save your plan and sync it across devices.
+              </p>
+            </div>
+          </div>
+          <div className="mt-4 flex gap-3">
+            <Button className="flex-1" onClick={() => openAuth("signup")}>
+              Create account
+            </Button>
+            <Button variant="ghost" className="flex-1" onClick={() => openAuth("signin")}>
+              Sign in
+            </Button>
+          </div>
+        </Card>
+        <AuthSheet open={authOpen} mode={authMode} onClose={() => setAuthOpen(false)} />
+      </>
+    );
+  }
+
+  // Signed in — backup / restore / sign out.
+  return (
+    <>
+      <p className="mb-2 px-2 text-[12px] font-semibold uppercase tracking-wide text-muted">
+        Cloud sync
+      </p>
+      <Card className="p-5">
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-jade text-white">
+            <Cloud size={18} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[15px] font-semibold">{email}</p>
+            <p className="text-[13px] text-muted">
+              {lastBackup ? `Last backed up ${relativeTime(lastBackup)}` : "Not backed up yet"}
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-4 flex gap-3">
+          <Button className="flex-1" onClick={backup} disabled={busy !== null}>
+            <UploadCloud size={17} />
+            {busy === "backup" ? "Backing up…" : "Back up now"}
+          </Button>
+          <Button
+            variant="ghost"
+            className="flex-1"
+            onClick={() => setConfirmRestore(true)}
+            disabled={busy !== null}
+          >
+            <DownloadCloud size={17} />
+            {busy === "restore" ? "Restoring…" : "Restore"}
+          </Button>
+        </div>
+
+        <button
+          onClick={signOut}
+          className="mt-3 flex w-full items-center justify-center gap-1.5 py-2 text-[14px] font-semibold text-muted transition hover:text-clay"
+        >
+          <LogOut size={16} /> Sign out
+        </button>
+      </Card>
+
+      <Sheet
+        open={confirmRestore}
+        onClose={() => setConfirmRestore(false)}
+        title="Restore from cloud"
+        footer={
+          <div className="flex gap-3">
+            <Button variant="ghost" className="flex-1" onClick={() => setConfirmRestore(false)}>
+              Cancel
+            </Button>
+            <Button className="flex-1" onClick={restore}>
+              Restore
+            </Button>
+          </div>
+        }
+      >
+        <div className="pb-4">
+          <p className="text-[15px] text-ink">
+            This replaces what's on this device with your latest cloud backup. Anything you've
+            changed here since then will be overwritten.
+          </p>
+        </div>
+      </Sheet>
+    </>
   );
 }

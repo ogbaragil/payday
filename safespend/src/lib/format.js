@@ -99,6 +99,20 @@ export function relativeDay(date) {
   return `In ${diff} days`;
 }
 
+// Compact "time ago" for sync timestamps.
+export function relativeTime(date) {
+  if (!date) return "";
+  const diff = Date.now() - new Date(date).getTime();
+  const min = Math.round(diff / 60000);
+  if (min < 1) return "just now";
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.round(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const day = Math.round(hr / 24);
+  if (day < 7) return `${day}d ago`;
+  return formatDate(date, { day: "numeric", month: "short" });
+}
+
 export function cycleLengthDays(frequency) {
   if (frequency === "weekly") return 7;
   if (frequency === "fortnightly") return 14;

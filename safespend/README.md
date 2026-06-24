@@ -95,10 +95,11 @@ Expense     { id, name, amount, dueDate, type, recurring, notes }
 
 ---
 
-## Adding Supabase later
+## Supabase: accounts + cloud backup
 
-Everything persists through `src/lib/db.js`, whose functions are already `async`
-so swapping the backend won't touch the UI. To enable Supabase:
+The app stays localStorage-first and fully offline; Supabase adds optional
+accounts and cloud backup on top. Auth and snapshot backup are already wired —
+to turn them on:
 
 1. Create a project at [supabase.com](https://supabase.com).
 2. Copy `.env.example` to `.env` and fill in:
@@ -109,11 +110,28 @@ so swapping the backend won't touch the UI. To enable Supabase:
    ```
 
    `src/lib/supabaseClient.js` only creates a client when these exist, so the
-   app keeps working on `localStorage` until you're ready.
-3. Create the tables (suggested schema is in `supabaseClient.js`) and enable
-   Row Level Security scoped to `auth.uid()`.
-4. Re-implement the function bodies in `db.js` against Supabase queries — the
-   signatures stay the same. Add auth calls where the comments mark them.
+   app keeps working without keys. With no keys, Settings shows a gentle
+   "add your Supabase keys" note instead of the sync controls.
+3. Run `safespend-supabase.sql` in the Supabase SQL editor. It creates the
+   `profiles` table (auto-provisioned on sign-up via trigger), the `backups`
+   table for snapshots, and Row Level Security scoped to `auth.uid()`.
+4. In the dashboard, enable your sign-up methods under
+   **Authentication → Providers** (email is on by default).
+
+That's it. **Settings → Cloud sync** now offers Create account / Sign in, and
+once signed in, **Back up now** / **Restore** / **Sign out**.
+
+### How sync works
+
+- **Auth** lives in `src/context/AuthContext.jsx` (`useAuth()`), wrapping
+  `supabase.auth`. The sheet UI is `src/components/AuthSheet.jsx`.
+- **Backup** is snapshot-style: `src/lib/cloud.js` pushes exactly what
+  `db.exportAll()` produces into one `jsonb` row per user, and restore runs that
+  payload back through `db.importAll()`. So the cloud backup reuses the same
+  format as the local Export/Import feature.
+- Want per-record sync instead of snapshots? `safespend-supabase.sql` includes
+  optional normalized `pay_cycles` + `expenses` tables (Part 3); swap the
+  `db.js` bodies to query those and keep the same function signatures.
 
 ---
 

@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { registerSW } from "virtual:pwa-register";
 import App from "./App.jsx";
 import { AppProvider } from "./context/AppContext.jsx";
+import { AuthProvider } from "./context/AuthContext.jsx";
 import "./index.css";
 
 // Register the service worker for offline support + installable PWA.
@@ -11,8 +12,10 @@ registerSW({ immediate: true });
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <AppProvider>
-      <App />
-    </AppProvider>
+    <AuthProvider>
+      <AppProvider>
+        <App />
+      </AppProvider>
+    </AuthProvider>
   </StrictMode>
 );
