@@ -1,0 +1,83 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Warm paper, not yellow-cream */
+    --bg: 246 246 244;
+    --surface: 255 255 255;
+    --elevated: 252 252 250;
+    --ink: 22 25 29;
+    --muted: 118 123 132;
+    --faint: 158 163 170;
+    --line: 232 232 228;
+
+    /* Signature: deep jade = money-positive, calm not alarming */
+    --jade: 19 122 95;
+    --jade-soft: 226 243 237;
+
+    --amber: 176 113 25;
+    --amber-soft: 248 240 224;
+
+    --clay: 188 78 56;
+    --clay-soft: 248 233 228;
+
+    color-scheme: light;
+  }
+
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: rgb(var(--bg));
+    color: rgb(var(--ink));
+    font-family: Inter, system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overscroll-behavior-y: none;
+  }
+
+  /* Tabular figures for all money so digits never jitter */
+  .tnum {
+    font-feature-settings: "tnum" 1, "cv01" 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  button {
+    font-family: inherit;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
+}
+
+@layer utilities {
+  .safe-bottom {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 0px);
+  }
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  /* Hide scrollbars on horizontal chip rows */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}

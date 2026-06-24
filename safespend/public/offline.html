@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SafeSpend — Offline</title>
+    <style>
+      :root { color-scheme: light; }
+      * { box-sizing: border-box; margin: 0; }
+      body {
+        font-family: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+        background: #f6f6f4;
+        color: #16191d;
+        min-height: 100dvh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        text-align: center;
+      }
+      .card {
+        max-width: 360px;
+        background: #fff;
+        border: 1px solid rgba(16, 25, 29, 0.08);
+        border-radius: 28px;
+        padding: 40px 28px;
+        box-shadow: 0 20px 50px -28px rgba(8, 23, 18, 0.4);
+      }
+      .badge {
+        width: 64px; height: 64px;
+        border-radius: 20px;
+        background: linear-gradient(155deg, #14241f, #0c1714);
+        display: grid; place-items: center;
+        margin: 0 auto 22px;
+      }
+      h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+      p { margin-top: 10px; color: #767b84; font-size: 15px; line-height: 1.5;
+          font-family: Inter, system-ui, sans-serif; }
+      button {
+        margin-top: 24px; width: 100%;
+        font-family: inherit; font-weight: 600; font-size: 15px;
+        color: #fff; background: #137a5f; border: none;
+        padding: 14px; border-radius: 16px; cursor: pointer;
+      }
+      button:active { transform: scale(0.98); }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="badge">
+        <svg width="34" height="34" viewBox="0 0 48 48" fill="none">
+          <path d="M24 9C24 9 13 13 13 13V25C13 32.5 18 37 24 39C30 37 35 32.5 35 25V13L24 9Z" fill="#1f5c4a" />
+          <path d="M19.5 24.2L22.7 27.6L29 20.5" stroke="#7fe3c2" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </div>
+      <h1>You're offline</h1>
+      <p>SafeSpend works without a connection once it's loaded. Reconnect to sync, or try again now.</p>
+      <button onclick="location.reload()">Try again</button>
+    </div>
+  </body>
+</html>
