@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowRight, Check, Sparkles } from "lucide-react";
 import Button from "../components/ui/Button.jsx";
+import GrowUpImport from "../components/GrowUpImport.jsx";
 import { useApp } from "../context/AppContext.jsx";
 import { CURRENCIES, FREQUENCY_LABELS, currencySymbol, toISODate, today, addDays } from "../lib/format.js";
 
@@ -13,6 +14,7 @@ const FREQUENCIES = [
 export default function Onboarding() {
   const { completeOnboarding, loadDemo } = useApp();
   const [step, setStep] = useState(0);
+  const [showImport, setShowImport] = useState(false);
   const [form, setForm] = useState({
     payFrequency: "fortnightly",
     nextPayday: toISODate(addDays(today(), 14)),
@@ -161,14 +163,24 @@ export default function Onboarding() {
           <ArrowRight size={18} />
         </Button>
         {step === 0 && (
-          <button
-            onClick={loadDemo}
-            className="w-full py-2 text-center text-[14px] font-medium text-muted transition hover:text-ink"
-          >
-            Explore with demo data instead
-          </button>
+          <>
+            <button
+              onClick={() => setShowImport(true)}
+              className="flex w-full items-center justify-center gap-1.5 py-2 text-center text-[14px] font-semibold text-jade transition hover:brightness-110"
+            >
+              <Sparkles size={15} /> Already use Grow UP? Load your numbers
+            </button>
+            <button
+              onClick={loadDemo}
+              className="w-full py-1 text-center text-[14px] font-medium text-muted transition hover:text-ink"
+            >
+              Explore with demo data instead
+            </button>
+          </>
         )}
       </div>
+
+      {showImport && <GrowUpImport onClose={() => setShowImport(false)} />}
     </div>
   );
 }

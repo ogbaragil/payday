@@ -39,7 +39,7 @@ export function AppProvider({ children }) {
       startDate: new Date().toISOString().slice(0, 10),
       nextPayday: form.nextPayday,
       income: Number(form.typicalIncome) || 0,
-      expenses: [],
+      expenses: Array.isArray(form.expenses) ? form.expenses : [],
       createdAt: new Date().toISOString(),
     };
     setProfile(newProfile); // optimistic
