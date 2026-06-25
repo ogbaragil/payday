@@ -43,9 +43,10 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // Precache the built app shell, fall back to offline.html when a
-        // navigation request can't be served from the network or cache.
-        navigateFallback: "/offline.html",
+        // SPA app-shell model: serve the precached index.html for client-side
+        // navigations (any route, online or offline). The shell runs offline on
+        // its own — data lives in localStorage — so refreshes always load the app.
+        navigateFallback: "/index.html",
         globPatterns: ["**/*.{js,css,html,svg,png,ico,woff2}"],
         runtimeCaching: [
           {

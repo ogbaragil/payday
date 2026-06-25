@@ -118,40 +118,42 @@ export function buildNextCycle(profile, previousCycle, overrides = {}) {
     : today();
   const payday = nextPaydayFrom(start, profile.payFrequency);
 
-  // Carry forward recurring expenses, each advancing on its OWN frequency.
-  // A null frequency means "every cycle", so it tracks the pay frequency.
-  // Past-due items roll to their next occurrence; future-dated items (e.g. a
-  // quarterly rego) carry forward unchanged until the cycle they're due in.
-  // Sinking funds accrue their set-aside each cycle, and a funded bill that just
-  // came due is paid FROM its fund (any surplus carries forward).
+  // Carry forward: all recurring items, plus any one-off that's still upcoming
+  // (a future-dated goal/bill shouldn't vanish before the cycle it lands in).
+  // Recurring items advance on their OWN frequency; one-offs keep their date.
+  // Sinking funds accrue their set-aside each cycle; a funded item that just came
+  // due is paid FROM its fund (recurring carries any surplus; a one-off that has
+  // passed is simply dropped, its fund already spent on it).
   const carried = (previousCycle?.expenses || [])
-    .filter((e) => e.recurring)
+    .filter((e) => e.recurring || (e.dueDate && startOfDay(e.dueDate) >= startOfDay(start)))
     .map((e) => {
-      const freq = e.frequency || profile.payFrequency;
       const funded = Boolean(e.fund?.enabled);
       const amount = Number(e.amount) || 0;
       let accrued = Number(e.fund?.accrued) || 0;
       let due = e.dueDate ? new Date(e.dueDate) : new Date(start);
 
-      if (startOfDay(due) < startOfDay(start)) {
-        // Bill was due in the cycle that just ended → fund pays it, carry surplus.
-        if (funded) accrued = Math.max(0, accrued - amount);
-        let guard = 0;
-        while (startOfDay(due) < startOfDay(start) && guard < 600) {
-          due = addByFrequency(due, freq);
-          guard += 1;
+      if (e.recurring) {
+        const freq = e.frequency || profile.payFrequency;
+        if (startOfDay(due) < startOfDay(start)) {
+          // Due in the cycle that just ended → fund pays it, carry any surplus.
+          if (funded) accrued = Math.max(0, accrued - amount);
+          let guard = 0;
+          while (startOfDay(due) < startOfDay(start) && guard < 600) {
+            due = addByFrequency(due, freq);
+            guard += 1;
+          }
+        } else if (funded) {
+          // Not yet due → bank the set-aside made during the cycle that just ended.
+          accrued += fundContribution(e, previousCycle, profile);
         }
-      } else if (funded) {
-        // Not yet due → bank the set-aside made during the cycle that just ended.
-        accrued += fundContribution(e, previousCycle, profile);
+        const next = makeExpense({ ...e, id: uid(), frequency: freq, dueDate: toISODate(due) });
+        if (e.fund) next.fund = { enabled: funded, accrued };
+        return next;
       }
 
-      const next = makeExpense({
-        ...e,
-        id: uid(),
-        frequency: freq,
-        dueDate: toISODate(due),
-      });
+      // One-off, still upcoming → carry forward; accrue toward it if funded.
+      if (funded) accrued += fundContribution(e, previousCycle, profile);
+      const next = makeExpense({ ...e, id: uid(), dueDate: toISODate(due) });
       if (e.fund) next.fund = { enabled: funded, accrued };
       return next;
     });

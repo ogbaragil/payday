@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import { Trash2, PiggyBank } from "lucide-react";
 import Sheet from "./ui/Sheet.jsx";
 import Button from "./ui/Button.jsx";
-import { EXPENSE_TYPES, fundContribution } from "../lib/calculations.js";
+import { EXPENSE_TYPES, fundContribution, cyclesUntilDue } from "../lib/calculations.js";
 import { EXAMPLE_CHIPS } from "../lib/demoData.js";
-import { currencySymbol, toISODate, today, startOfDay, formatMoney } from "../lib/format.js";
+import { currencySymbol, toISODate, today, formatMoney } from "../lib/format.js";
 import { useApp } from "../context/AppContext.jsx";
 
 const FREQ_OPTS = [
@@ -51,11 +51,16 @@ export default function ExpenseSheet({ open, onClose, editing = null, defaultTyp
     }
   };
 
+  // A sinking fund makes sense for anything due in a FUTURE cycle that's lumpy:
+  // a one-off goal (a trip, a new laptop) or a recurring quarterly/yearly bill.
+  // Frequent recurring bills (weekly/fortnightly/monthly) don't qualify.
+  const dueCycles = form.dueDate
+    ? cyclesUntilDue(form.dueDate, cycle, profile?.payFrequency)
+    : 1;
   const fundEligible =
-    form.recurring &&
-    ["quarterly", "yearly"].includes(form.frequency) &&
-    form.dueDate &&
-    startOfDay(form.dueDate) > today();
+    Boolean(form.dueDate) &&
+    dueCycles > 1 &&
+    (!form.recurring || ["quarterly", "yearly"].includes(form.frequency));
 
   const setAsidePreview = fundEligible
     ? fundContribution(
