@@ -28,6 +28,7 @@ export function AppProvider({ children }) {
   const completeOnboarding = useCallback(async (form) => {
     const newProfile = {
       id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+      name: (form.name || "").trim() || null,
       currency: form.currency,
       payFrequency: form.payFrequency,
       nextPayday: form.nextPayday,

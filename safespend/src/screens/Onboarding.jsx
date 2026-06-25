@@ -16,6 +16,7 @@ export default function Onboarding() {
   const [step, setStep] = useState(0);
   const [showImport, setShowImport] = useState(false);
   const [form, setForm] = useState({
+    name: "",
     payFrequency: "fortnightly",
     nextPayday: toISODate(addDays(today(), 14)),
     typicalIncome: "",
@@ -152,6 +153,17 @@ export default function Onboarding() {
                   {c.code}
                 </button>
               ))}
+            </div>
+            <div className="mt-6">
+              <label className="mb-2 block px-1 text-xs font-semibold uppercase tracking-wide text-muted">
+                Your name <span className="font-normal normal-case text-faint">(optional)</span>
+              </label>
+              <input
+                placeholder="First name — so we can say hi"
+                value={form.name}
+                onChange={(e) => set({ name: e.target.value })}
+                className="w-full rounded-2xl border-2 border-line bg-surface px-4 py-3.5 text-[15px] font-medium outline-none transition focus:border-jade"
+              />
             </div>
           </>
         )}

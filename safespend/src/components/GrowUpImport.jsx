@@ -134,6 +134,13 @@ export default function GrowUpImport({ onClose }) {
         nextPayday,
         typicalIncome: plan.typicalIncome,
         expenses,
+        name:
+          cashflow.firstName ||
+          user?.user_metadata?.first_name ||
+          user?.user_metadata?.given_name ||
+          user?.user_metadata?.full_name ||
+          user?.user_metadata?.name ||
+          "",
       });
       // onboarded flips true → App swaps to Home; this overlay unmounts with it.
     } catch (e) {

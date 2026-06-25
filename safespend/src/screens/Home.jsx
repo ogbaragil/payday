@@ -7,8 +7,10 @@ import ExpenseSheet from "../components/ExpenseSheet.jsx";
 import NewCycleSheet from "../components/NewCycleSheet.jsx";
 import { Card, SectionTitle } from "../components/ui/Card.jsx";
 import { useApp } from "../context/AppContext.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
 import { cycleSummary, upcomingExpenses } from "../lib/calculations.js";
 import { formatMoney, formatDate, today, daysBetween } from "../lib/format.js";
+import { firstNameFrom } from "../lib/user.js";
 
 function QuickAction({ icon: Icon, label, onClick, tone = "default" }) {
   const tones = {
@@ -28,6 +30,7 @@ function QuickAction({ icon: Icon, label, onClick, tone = "default" }) {
 
 export default function Home() {
   const { cycle, currency, profile } = useApp();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [sheet, setSheet] = useState(null); // 'expense' | 'income' | null
   const [newCycle, setNewCycle] = useState(false);
@@ -39,7 +42,9 @@ export default function Home() {
   );
 
   const hour = new Date().getHours();
-  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  const timeGreeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  const name = firstNameFrom(profile, user);
+  const greeting = name ? `${timeGreeting}, ${name}` : timeGreeting;
 
   if (!cycle) return null;
 

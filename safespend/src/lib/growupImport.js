@@ -139,8 +139,9 @@ export function extractCashflow(payload) {
   }
 
   const currency = payload.currency || profile.currency || null;
+  const firstName = payload.firstName || profile.firstName || profile.name || "";
   const hasData = monthlyIncome > 0 || expenses.length > 0;
-  return hasData ? { monthlyIncome, expenses, currency } : null;
+  return hasData ? { monthlyIncome, expenses, currency, firstName } : null;
 }
 
 // A lumpy expense worth a sinking fund: infrequent (less often than the pay
