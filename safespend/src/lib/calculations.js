@@ -20,14 +20,33 @@ export function sumByTypes(expenses = [], types) {
     .reduce((total, e) => total + (Number(e.amount) || 0), 0);
 }
 
-// Total money committed away from free spending.
+// An expense counts toward THIS cycle only if its due date falls within the
+// cycle window [startDate, nextPayday]. Undated items always count. This is the
+// heart of "safe to spend before next payday": a bill due in 3 months must not
+// reduce this period's number — it only lands in the cycle it's actually due.
+export function isDueInCycle(expense, cycle) {
+  if (!expense?.dueDate) return true;
+  const due = startOfDay(expense.dueDate);
+  const start = cycle?.startDate ? startOfDay(cycle.startDate) : null;
+  const end = cycle?.nextPayday ? startOfDay(cycle.nextPayday) : null;
+  if (start && due < start) return false;
+  if (end && due > end) return false;
+  return true;
+}
+
+// Expenses actually due within the current cycle window.
+export function expensesInCycle(cycle) {
+  return (cycle?.expenses || []).filter((e) => isDueInCycle(e, cycle));
+}
+
+// Total money committed away from free spending — only what's due this cycle.
 export function committedTotal(cycle) {
-  return sumByTypes(cycle?.expenses, COMMITTED_TYPES);
+  return sumByTypes(expensesInCycle(cycle), COMMITTED_TYPES);
 }
 
 // Any extra income added mid-cycle (on top of the base payday income).
 export function extraIncome(cycle) {
-  return sumByTypes(cycle?.expenses, ["income"]);
+  return sumByTypes(expensesInCycle(cycle), ["income"]);
 }
 
 export function totalIncome(cycle) {
@@ -121,7 +140,15 @@ export const SCENARIO_COPY = {
 // Items between today and the next payday, sorted, for the timeline.
 export function upcomingExpenses(cycle, ref = today()) {
   if (!cycle?.expenses) return [];
+  const from = startOfDay(ref);
+  const end = cycle?.nextPayday ? startOfDay(cycle.nextPayday) : null;
   return [...cycle.expenses]
     .filter((e) => e.dueDate)
+    .filter((e) => {
+      const due = startOfDay(e.dueDate);
+      if (due < from) return false;
+      if (end && due > end) return false;
+      return true;
+    })
     .sort((a, b) => startOfDay(a.dueDate) - startOfDay(b.dueDate));
 }

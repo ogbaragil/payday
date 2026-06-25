@@ -10,6 +10,33 @@
 
 import { supabase } from "./supabaseClient.js";
 import { makeExpense } from "./demoData.js";
+import { addByFrequency, startOfDay, toISODate } from "./format.js";
+
+// Normalise Grow UP's frequency vocabulary (mirrors its normalizeFrequency()).
+function normalizeFreq(frequency, recurring) {
+  if (!frequency || frequency === "once") return recurring ? "monthly" : "oneOff";
+  return frequency;
+}
+
+// Next due date for a Grow UP transaction, from `from` onward. Mirrors Grow UP's
+// getNextOccurrence(): walks the anchor date forward by frequency until it's
+// today or later. Returns an ISO date string, or null for a passed one-off.
+function nextDueISO(txn, from = new Date()) {
+  if (!txn?.date) return null;
+  let d = new Date(txn.date);
+  if (Number.isNaN(d.getTime())) return null;
+  const freq = normalizeFreq(txn.frequency, txn.recurring);
+  const start = startOfDay(from);
+  if (freq === "oneOff" || !txn.recurring) {
+    return d >= start ? toISODate(d) : null;
+  }
+  let guard = 0;
+  while (startOfDay(d) < start && guard < 600) {
+    d = addByFrequency(d, freq);
+    guard += 1;
+  }
+  return toISODate(d);
+}
 
 // Mirror of Grow UP's monthlyEquivalent() so figures line up across both apps.
 export function monthlyFromFrequency(amount, frequency, recurring = true) {
@@ -63,8 +90,10 @@ export async function fetchGrowUpSnapshot(userId) {
   return data?.[0]?.app_state || data?.[0]?.state || null;
 }
 
-// Pull monthly income + recurring monthly expenses out of a Grow UP state payload.
-// Returns { monthlyIncome, expenses:[{name, monthlyAmount, type}], currency } or null.
+// Pull monthly income (for pro-rata) + recurring expenses (with REAL amounts,
+// their frequency, and their next due date — never pro-rated) from a Grow UP
+// payload. Returns { monthlyIncome, expenses:[{name, amount, type, frequency,
+// dueDate}], currency } or null.
 export function extractCashflow(payload) {
   if (!payload || typeof payload !== "object") return null;
 
@@ -73,20 +102,26 @@ export function extractCashflow(payload) {
     (t) => t && t.recurring && (t.frequency ? t.frequency !== "once" : true)
   );
 
+  // Income: summed as a monthly-equivalent so it can be pro-rated to the cycle.
   let monthlyIncome = recurring
     .filter((t) => t.type === "income")
     .reduce((sum, t) => sum + monthlyFromFrequency(t.amount, t.frequency, true), 0);
 
+  // Expenses: keep the REAL amount, the frequency, and the next due date.
   let expenses = recurring
     .filter((t) => t.type === "expense")
     .map((t) => ({
       name: t.name || "Expense",
-      monthlyAmount: monthlyFromFrequency(t.amount, t.frequency, true),
+      amount: Number(t.amount || 0),
       type: mapType(t.name, t.category),
+      frequency: normalizeFreq(t.frequency, true),
+      dueDate: nextDueISO(t),
     }))
-    .filter((e) => e.monthlyAmount > 0);
+    .filter((e) => e.amount > 0 && e.dueDate);
 
   // Fallbacks: profile-level figures when there are no transactions yet.
+  // Profile expenses are monthly amounts with no anchor date → treat as monthly,
+  // due now, at their real (monthly) amount.
   const profile = payload.profile || {};
   if (monthlyIncome <= 0 && Number(profile.income) > 0) {
     monthlyIncome = Number(profile.income);
@@ -95,10 +130,12 @@ export function extractCashflow(payload) {
     expenses = profile.expenses
       .map((e) => ({
         name: e.name || "Expense",
-        monthlyAmount: Number(e.amount || 0),
+        amount: Number(e.amount || 0),
         type: mapType(e.name, ""),
+        frequency: "monthly",
+        dueDate: toISODate(new Date()),
       }))
-      .filter((e) => e.monthlyAmount > 0);
+      .filter((e) => e.amount > 0);
   }
 
   const currency = payload.currency || profile.currency || null;
@@ -106,17 +143,19 @@ export function extractCashflow(payload) {
   return hasData ? { monthlyIncome, expenses, currency } : null;
 }
 
-// Convert monthly cashflow into SafeSpend's per-cycle onboarding pieces.
-// Returns { typicalIncome, expenses:[<makeExpense items>] }.
+// Build SafeSpend's onboarding pieces. Income pro-rates to the cycle; expenses
+// keep their real amounts, frequency, and due dates (only what's due before a
+// given payday counts toward that cycle).
 export function toPayCycle(cashflow, payFrequency) {
-  const frac = cycleFraction(payFrequency);
-  const typicalIncome = Math.round((cashflow.monthlyIncome || 0) * frac);
+  const typicalIncome = Math.round((cashflow.monthlyIncome || 0) * cycleFraction(payFrequency));
   const expenses = (cashflow.expenses || []).map((e) =>
     makeExpense({
       name: e.name,
-      amount: Math.round(e.monthlyAmount * frac),
+      amount: Math.round(e.amount),
       type: e.type,
-      recurring: true,
+      frequency: e.frequency,
+      recurring: e.frequency !== "oneOff",
+      dueDate: e.dueDate,
     })
   );
   return { typicalIncome, expenses };

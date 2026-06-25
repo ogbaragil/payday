@@ -3,9 +3,9 @@ import { Plus, Pencil } from "lucide-react";
 import ExpenseSheet from "../components/ExpenseSheet.jsx";
 import { Card } from "../components/ui/Card.jsx";
 import { useApp } from "../context/AppContext.jsx";
-import { cycleSummary } from "../lib/calculations.js";
+import { cycleSummary, isDueInCycle } from "../lib/calculations.js";
 import { typeMeta, TYPE_META } from "../lib/typeMeta.js";
-import { formatMoney, currencySymbol } from "../lib/format.js";
+import { formatMoney, currencySymbol, relativeDay, formatDate } from "../lib/format.js";
 
 const GROUPS = [
   { type: "bill", title: "Bills" },
@@ -109,7 +109,8 @@ export default function Plan() {
       {/* Grouped items */}
       {GROUPS.map((g) => {
         const items = byType[g.type] || [];
-        const subtotal = items.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+        const dueItems = items.filter((e) => isDueInCycle(e, cycle));
+        const subtotal = dueItems.reduce((s, e) => s + (Number(e.amount) || 0), 0);
         const meta = TYPE_META[g.type];
         return (
           <section key={g.type}>
@@ -135,23 +136,32 @@ export default function Plan() {
 
             {items.length > 0 ? (
               <Card className="divide-y divide-line/60 p-1">
-                {items.map((e) => (
-                  <button
-                    key={e.id}
-                    onClick={() => setEditing(e)}
-                    className="flex w-full items-center justify-between px-3 py-3 text-left transition active:bg-elevated"
-                  >
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[15px] font-semibold">{e.name}</span>
-                      {e.recurring && (
-                        <span className="text-[12px] text-muted">Repeats each cycle</span>
-                      )}
-                    </span>
-                    <span className="text-[15px] font-semibold tnum">
-                      {formatMoney(e.amount, currency, { cents: false })}
-                    </span>
-                  </button>
-                ))}
+                {items.map((e) => {
+                  const due = isDueInCycle(e, cycle);
+                  return (
+                    <button
+                      key={e.id}
+                      onClick={() => setEditing(e)}
+                      className={`flex w-full items-center justify-between px-3 py-3 text-left transition active:bg-elevated ${due ? "" : "opacity-55"}`}
+                    >
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[15px] font-semibold">{e.name}</span>
+                        <span className="text-[12px] text-muted">
+                          {e.dueDate
+                            ? due
+                              ? `Due ${relativeDay(e.dueDate)}`
+                              : `Due ${formatDate(e.dueDate)} · later cycle`
+                            : e.recurring
+                            ? "Repeats each cycle"
+                            : ""}
+                        </span>
+                      </span>
+                      <span className={`text-[15px] font-semibold tnum ${due ? "" : "text-muted"}`}>
+                        {formatMoney(e.amount, currency, { cents: false })}
+                      </span>
+                    </button>
+                  );
+                })}
               </Card>
             ) : (
               <button

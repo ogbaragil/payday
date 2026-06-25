@@ -2,7 +2,7 @@
 // Cloud backup (Supabase)
 // ---------------------------------------------------------------------------
 // Snapshot-style sync: the whole-account object that db.exportAll() produces is
-// stored as one jsonb row per user in the `backups` table (see
+// stored as one jsonb row per user in the `safespend_backups` table (see
 // safespend-supabase.sql, Part 2). Restoring runs that payload back through
 // db.importAll(). RLS scopes every row to the signed-in user, so these queries
 // never need an explicit user filter.
@@ -23,7 +23,7 @@ export async function pushBackup(payload) {
   } = await client.auth.getUser();
   if (!user) throw new Error("Sign in to back up");
 
-  const { error } = await client.from("backups").upsert({
+  const { error } = await client.from("safespend_backups").upsert({
     user_id: user.id,
     payload,
     schema_version: payload?.schemaVersion ?? 1,
@@ -36,7 +36,7 @@ export async function pushBackup(payload) {
 export async function pullBackup() {
   const client = requireClient();
   const { data, error } = await client
-    .from("backups")
+    .from("safespend_backups")
     .select("payload, updated_at")
     .maybeSingle();
   if (error) throw error;
@@ -47,7 +47,7 @@ export async function pullBackup() {
 export async function getBackupMeta() {
   const client = requireClient();
   const { data, error } = await client
-    .from("backups")
+    .from("safespend_backups")
     .select("updated_at")
     .maybeSingle();
   if (error) throw error;

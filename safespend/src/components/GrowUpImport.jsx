@@ -280,7 +280,7 @@ export default function GrowUpImport({ onClose }) {
                 </span>
               </div>
               <p className="mt-1 text-[12px] text-muted">
-                Expenses are scaled to each cycle. You can fine-tune everything after.
+                Bills keep their real amounts and due dates — only what's due before each payday counts. Fine-tune anytime.
               </p>
             </div>
 

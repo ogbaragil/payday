@@ -77,6 +77,19 @@ export function addMonths(date, months) {
   return d;
 }
 
+// Advance a date by one occurrence of the given frequency. Mirrors Grow UP's
+// addFrequency() so imported due dates line up across both apps.
+export function addByFrequency(date, frequency) {
+  switch (frequency) {
+    case "weekly":      return addDays(date, 7);
+    case "fortnightly": return addDays(date, 14);
+    case "monthly":     return addMonths(date, 1);
+    case "quarterly":   return addMonths(date, 3);
+    case "yearly":      return addMonths(date, 12);
+    default:            return addMonths(date, 1); // safety net; callers resolve null first
+  }
+}
+
 export function formatDate(date, opts = { weekday: "short", day: "numeric", month: "short" }) {
   return new Intl.DateTimeFormat("en-AU", opts).format(new Date(date));
 }

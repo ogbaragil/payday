@@ -10,7 +10,7 @@
 // ---------------------------------------------------------------------------
 
 import { uid, makeExpense } from "./demoData.js";
-import { addDays, addMonths, toISODate, today } from "./format.js";
+import { addDays, addMonths, addByFrequency, startOfDay, toISODate, today } from "./format.js";
 
 const KEYS = {
   profile: "safespend.profile",
@@ -117,15 +117,25 @@ export function buildNextCycle(profile, previousCycle, overrides = {}) {
     : today();
   const payday = nextPaydayFrom(start, profile.payFrequency);
 
-  // Carry forward recurring expenses with fresh ids and shifted due dates.
+  // Carry forward recurring expenses, each advancing on its OWN frequency.
+  // A null frequency means "every cycle", so it tracks the pay frequency.
+  // Past-due items roll to their next occurrence; future-dated items (e.g. a
+  // quarterly rego) carry forward unchanged until the cycle they're due in.
   const carried = (previousCycle?.expenses || [])
     .filter((e) => e.recurring)
     .map((e) => {
-      const shift = profile.payFrequency === "weekly" ? 7 : profile.payFrequency === "fortnightly" ? 14 : 30;
+      const freq = e.frequency || profile.payFrequency;
+      let due = e.dueDate ? new Date(e.dueDate) : new Date(start);
+      let guard = 0;
+      while (startOfDay(due) < startOfDay(start) && guard < 600) {
+        due = addByFrequency(due, freq);
+        guard += 1;
+      }
       return makeExpense({
         ...e,
         id: uid(),
-        dueDate: toISODate(addDays(e.dueDate || start, shift)),
+        frequency: freq,
+        dueDate: toISODate(due),
       });
     });
 

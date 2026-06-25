@@ -18,6 +18,7 @@ export function makeExpense(partial = {}) {
     dueDate: toISODate(today()),
     type: "spending",
     recurring: false,
+    frequency: null, // null = "every cycle" (resolved to the pay frequency on rollover)
     notes: "",
     ...partial,
   };
