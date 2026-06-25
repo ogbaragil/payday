@@ -3,7 +3,7 @@ import { Plus, Pencil } from "lucide-react";
 import ExpenseSheet from "../components/ExpenseSheet.jsx";
 import { Card } from "../components/ui/Card.jsx";
 import { useApp } from "../context/AppContext.jsx";
-import { cycleSummary, isDueInCycle } from "../lib/calculations.js";
+import { cycleSummary, isDueInCycle, fundContribution, fundCoverage } from "../lib/calculations.js";
 import { typeMeta, TYPE_META } from "../lib/typeMeta.js";
 import { formatMoney, currencySymbol, relativeDay, formatDate } from "../lib/format.js";
 
@@ -16,13 +16,13 @@ const GROUPS = [
 ];
 
 export default function Plan() {
-  const { cycle, currency, setIncome } = useApp();
+  const { cycle, currency, profile, setIncome } = useApp();
   const [editing, setEditing] = useState(null);
   const [addType, setAddType] = useState(null);
   const [editingIncome, setEditingIncome] = useState(false);
   const [incomeDraft, setIncomeDraft] = useState("");
 
-  const summary = useMemo(() => cycleSummary(cycle), [cycle]);
+  const summary = useMemo(() => cycleSummary(cycle, profile), [cycle, profile]);
   const byType = useMemo(() => {
     const m = {};
     for (const g of GROUPS) m[g.type] = [];
@@ -103,6 +103,9 @@ export default function Plan() {
         <div className="text-right text-[13px] text-muted">
           <p>In {formatMoney(summary.income, currency, { cents: false })}</p>
           <p>Committed {formatMoney(summary.committed, currency, { cents: false })}</p>
+          {summary.setAside > 0 && (
+            <p className="text-amber">Set aside {formatMoney(summary.setAside, currency, { cents: false })}</p>
+          )}
         </div>
       </Card>
 
@@ -110,7 +113,10 @@ export default function Plan() {
       {GROUPS.map((g) => {
         const items = byType[g.type] || [];
         const dueItems = items.filter((e) => isDueInCycle(e, cycle));
-        const subtotal = dueItems.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+        const subtotal = dueItems.reduce(
+          (s, e) => s + (e.fund?.enabled ? fundCoverage(e).shortfall : Number(e.amount) || 0),
+          0
+        );
         const meta = TYPE_META[g.type];
         return (
           <section key={g.type}>
@@ -138,25 +144,34 @@ export default function Plan() {
               <Card className="divide-y divide-line/60 p-1">
                 {items.map((e) => {
                   const due = isDueInCycle(e, cycle);
+                  const funded = Boolean(e.fund?.enabled);
+                  const muted = !due && !funded;
+                  let sub;
+                  if (funded && due) {
+                    const { shortfall } = fundCoverage(e);
+                    sub = shortfall > 0
+                      ? `Covered by fund · ${formatMoney(shortfall, currency, { cents: false })} top-up`
+                      : "Covered by fund";
+                  } else if (funded) {
+                    const per = fundContribution(e, cycle, profile);
+                    const accrued = Number(e.fund.accrued) || 0;
+                    sub = `Setting aside ${formatMoney(per, currency, { cents: false })}/cycle · ${formatMoney(accrued, currency, { cents: false })} of ${formatMoney(e.amount, currency, { cents: false })}`;
+                  } else if (e.dueDate) {
+                    sub = due ? `Due ${relativeDay(e.dueDate)}` : `Due ${formatDate(e.dueDate)} · later cycle`;
+                  } else {
+                    sub = e.recurring ? "Repeats each cycle" : "";
+                  }
                   return (
                     <button
                       key={e.id}
                       onClick={() => setEditing(e)}
-                      className={`flex w-full items-center justify-between px-3 py-3 text-left transition active:bg-elevated ${due ? "" : "opacity-55"}`}
+                      className={`flex w-full items-center justify-between px-3 py-3 text-left transition active:bg-elevated ${muted ? "opacity-55" : ""}`}
                     >
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-[15px] font-semibold">{e.name}</span>
-                        <span className="text-[12px] text-muted">
-                          {e.dueDate
-                            ? due
-                              ? `Due ${relativeDay(e.dueDate)}`
-                              : `Due ${formatDate(e.dueDate)} · later cycle`
-                            : e.recurring
-                            ? "Repeats each cycle"
-                            : ""}
-                        </span>
+                        <span className={`text-[12px] ${funded ? "text-amber" : "text-muted"}`}>{sub}</span>
                       </span>
-                      <span className={`text-[15px] font-semibold tnum ${due ? "" : "text-muted"}`}>
+                      <span className={`text-[15px] font-semibold tnum ${muted ? "text-muted" : ""}`}>
                         {formatMoney(e.amount, currency, { cents: false })}
                       </span>
                     </button>

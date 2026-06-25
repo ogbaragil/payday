@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, ArrowDownLeft, Sparkles, RefreshCw, ArrowUpRight } from "lucide-react";
+import { Plus, ArrowDownLeft, Sparkles, RefreshCw, ArrowUpRight, PiggyBank } from "lucide-react";
 import SafeSpendCard from "../components/SafeSpendCard.jsx";
 import ExpenseRow from "../components/ExpenseRow.jsx";
 import ExpenseSheet from "../components/ExpenseSheet.jsx";
@@ -32,7 +32,7 @@ export default function Home() {
   const [sheet, setSheet] = useState(null); // 'expense' | 'income' | null
   const [newCycle, setNewCycle] = useState(false);
 
-  const summary = useMemo(() => cycleSummary(cycle), [cycle]);
+  const summary = useMemo(() => cycleSummary(cycle, profile), [cycle, profile]);
   const upcoming = useMemo(
     () => upcomingExpenses(cycle).filter((e) => daysBetween(today(), e.dueDate) >= 0).slice(0, 4),
     [cycle]
@@ -70,6 +70,16 @@ export default function Home() {
         </Card>
       ) : (
         <SafeSpendCard summary={summary} currency={currency} payday={formatDate(cycle.nextPayday, { day: "numeric", month: "short" })} />
+      )}
+
+      {!summary.complete && summary.setAside > 0 && (
+        <div className="-mt-2 flex items-center gap-2 rounded-2xl bg-amber-soft/50 px-4 py-2.5">
+          <PiggyBank size={16} className="shrink-0 text-amber" />
+          <p className="text-[13px] text-ink">
+            <span className="font-semibold tnum">{formatMoney(summary.setAside, currency, { cents: false })}</span>{" "}
+            set aside this cycle for upcoming bills.
+          </p>
+        </div>
       )}
 
       {/* Stat strip */}

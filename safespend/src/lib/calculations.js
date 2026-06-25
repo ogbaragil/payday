@@ -1,7 +1,7 @@
 // The math behind SafeSpend. All pure functions so they're easy to test
 // and reuse across screens (Home, Timeline, Scenario).
 
-import { today, daysBetween, startOfDay } from "./format.js";
+import { today, daysBetween, startOfDay, addByFrequency } from "./format.js";
 
 // Expense types that REDUCE safe-to-spend (money already committed).
 export const COMMITTED_TYPES = ["bill", "saving", "debt", "spending"];
@@ -39,9 +39,69 @@ export function expensesInCycle(cycle) {
   return (cycle?.expenses || []).filter((e) => isDueInCycle(e, cycle));
 }
 
+// --- Sinking funds -------------------------------------------------------
+// A funded expense sets aside a little each cycle so a big, infrequent bill
+// (rego, insurance) is covered when it lands — without one period absorbing the
+// whole hit. fund = { enabled: bool, accrued: number } lives on the expense.
+
+// Cycles until an expense is due. 1 = due in the current cycle's window,
+// 2 = next cycle, and so on.
+export function cyclesUntilDue(dueDateISO, cycle, payFrequency) {
+  if (!dueDateISO || !cycle?.nextPayday || !payFrequency) return 1;
+  const due = startOfDay(dueDateISO);
+  let winEnd = startOfDay(cycle.nextPayday);
+  let n = 1;
+  let guard = 0;
+  while (due > winEnd && guard < 600) {
+    winEnd = startOfDay(addByFrequency(winEnd, payFrequency));
+    n += 1;
+    guard += 1;
+  }
+  return n;
+}
+
+// Per-cycle set-aside for a funded FUTURE expense: spread the remaining amount
+// across the cycles before it's due, so the fund is full by the due date.
+// Self-correcting — recomputed each cycle from what's left and time remaining.
+export function fundContribution(expense, cycle, profile) {
+  if (!expense?.fund?.enabled || !profile?.payFrequency) return 0;
+  const remaining = Math.max(0, (Number(expense.amount) || 0) - (Number(expense.fund.accrued) || 0));
+  if (remaining <= 0) return 0;
+  const due = cyclesUntilDue(expense.dueDate, cycle, profile.payFrequency);
+  if (due <= 1) return 0; // due this cycle → handled as a due bill, not a set-aside
+  const contributionsLeft = Math.max(1, due - 1);
+  return remaining / contributionsLeft;
+}
+
+// For a funded expense due THIS cycle: how much the accrued fund covers, and the
+// shortfall (top-up) that still reduces safe-to-spend.
+export function fundCoverage(expense) {
+  const amount = Number(expense?.amount) || 0;
+  const accrued = Number(expense?.fund?.accrued) || 0;
+  const covered = Math.min(amount, accrued);
+  return { covered, shortfall: Math.max(0, amount - covered) };
+}
+
+// Total set aside this cycle toward upcoming funded expenses.
+export function setAsideTotal(cycle, profile) {
+  if (!cycle?.expenses || !profile) return 0;
+  return cycle.expenses.reduce((sum, e) => {
+    if (e?.fund?.enabled && !isDueInCycle(e, cycle)) {
+      return sum + fundContribution(e, cycle, profile);
+    }
+    return sum;
+  }, 0);
+}
+
 // Total money committed away from free spending — only what's due this cycle.
-export function committedTotal(cycle) {
-  return sumByTypes(expensesInCycle(cycle), COMMITTED_TYPES);
+// A funded bill due now is covered by its fund; only any shortfall counts.
+export function committedTotal(cycle, profile) {
+  return expensesInCycle(cycle)
+    .filter((e) => COMMITTED_TYPES.includes(e.type))
+    .reduce((sum, e) => {
+      if (e?.fund?.enabled) return sum + fundCoverage(e).shortfall;
+      return sum + (Number(e.amount) || 0);
+    }, 0);
 }
 
 // Any extra income added mid-cycle (on top of the base payday income).
@@ -53,10 +113,10 @@ export function totalIncome(cycle) {
   return (Number(cycle?.income) || 0) + extraIncome(cycle);
 }
 
-// Income received − bills − savings − debt − planned spending = Safe to Spend
-export function safeToSpend(cycle) {
+// Income − committed (due this cycle) − set-asides for upcoming funds = Safe to Spend
+export function safeToSpend(cycle, profile) {
   if (!cycle) return 0;
-  return totalIncome(cycle) - committedTotal(cycle);
+  return totalIncome(cycle) - committedTotal(cycle, profile) - setAsideTotal(cycle, profile);
 }
 
 // Days left until the next payday (never less than 1 for the daily maths).
@@ -72,8 +132,8 @@ export function isCycleComplete(cycle, ref = today()) {
   return daysBetween(ref, cycle.nextPayday) <= 0;
 }
 
-export function dailyAllowance(cycle, ref = today()) {
-  const safe = safeToSpend(cycle);
+export function dailyAllowance(cycle, profile, ref = today()) {
+  const safe = safeToSpend(cycle, profile);
   return safe / daysRemaining(cycle, ref);
 }
 
@@ -87,13 +147,14 @@ export function cycleProgress(cycle, ref = today()) {
 }
 
 // Build a derived snapshot used across the UI.
-export function cycleSummary(cycle, ref = today()) {
+export function cycleSummary(cycle, profile, ref = today()) {
   return {
     income: totalIncome(cycle),
-    committed: committedTotal(cycle),
-    safe: safeToSpend(cycle),
+    committed: committedTotal(cycle, profile),
+    setAside: setAsideTotal(cycle, profile),
+    safe: safeToSpend(cycle, profile),
     daysLeft: daysRemaining(cycle, ref),
-    perDay: dailyAllowance(cycle, ref),
+    perDay: dailyAllowance(cycle, profile, ref),
     progress: cycleProgress(cycle, ref),
     complete: isCycleComplete(cycle, ref),
   };
@@ -101,9 +162,9 @@ export function cycleSummary(cycle, ref = today()) {
 
 // --- Scenario mode -----------------------------------------------------
 // "Can I spend $300 on a weekend away?" → status + the numbers behind it.
-export function evaluateScenario(cycle, amount, ref = today()) {
+export function evaluateScenario(cycle, amount, profile, ref = today()) {
   const spend = Number(amount) || 0;
-  const safeBefore = safeToSpend(cycle);
+  const safeBefore = safeToSpend(cycle, profile);
   const safeAfter = safeBefore - spend;
   const days = daysRemaining(cycle, ref);
   const perDayBefore = safeBefore / days;

@@ -143,20 +143,33 @@ export function extractCashflow(payload) {
   return hasData ? { monthlyIncome, expenses, currency } : null;
 }
 
+// A lumpy expense worth a sinking fund: infrequent (less often than the pay
+// cycle) AND bigger than one period's pay, so it can't be absorbed in one cycle.
+export function suggestsFund(expense, typicalIncome) {
+  const infrequent = ["quarterly", "yearly"].includes(expense.frequency);
+  const big = Number(typicalIncome) > 0 && Number(expense.amount) > Number(typicalIncome);
+  return infrequent && big;
+}
+
 // Build SafeSpend's onboarding pieces. Income pro-rates to the cycle; expenses
 // keep their real amounts, frequency, and due dates (only what's due before a
-// given payday counts toward that cycle).
+// given payday counts toward that cycle). Lumpy expenses get an auto-suggested
+// sinking fund (enabled by default; the user confirms in the import preview).
 export function toPayCycle(cashflow, payFrequency) {
   const typicalIncome = Math.round((cashflow.monthlyIncome || 0) * cycleFraction(payFrequency));
-  const expenses = (cashflow.expenses || []).map((e) =>
-    makeExpense({
+  const expenses = (cashflow.expenses || []).map((e) => {
+    const exp = makeExpense({
       name: e.name,
       amount: Math.round(e.amount),
       type: e.type,
       frequency: e.frequency,
       recurring: e.frequency !== "oneOff",
       dueDate: e.dueDate,
-    })
-  );
+    });
+    if (suggestsFund(exp, typicalIncome)) {
+      exp.fund = { enabled: true, accrued: 0 };
+    }
+    return exp;
+  });
   return { typicalIncome, expenses };
 }

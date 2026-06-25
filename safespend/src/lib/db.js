@@ -11,6 +11,7 @@
 
 import { uid, makeExpense } from "./demoData.js";
 import { addDays, addMonths, addByFrequency, startOfDay, toISODate, today } from "./format.js";
+import { fundContribution } from "./calculations.js";
 
 const KEYS = {
   profile: "safespend.profile",
@@ -121,22 +122,38 @@ export function buildNextCycle(profile, previousCycle, overrides = {}) {
   // A null frequency means "every cycle", so it tracks the pay frequency.
   // Past-due items roll to their next occurrence; future-dated items (e.g. a
   // quarterly rego) carry forward unchanged until the cycle they're due in.
+  // Sinking funds accrue their set-aside each cycle, and a funded bill that just
+  // came due is paid FROM its fund (any surplus carries forward).
   const carried = (previousCycle?.expenses || [])
     .filter((e) => e.recurring)
     .map((e) => {
       const freq = e.frequency || profile.payFrequency;
+      const funded = Boolean(e.fund?.enabled);
+      const amount = Number(e.amount) || 0;
+      let accrued = Number(e.fund?.accrued) || 0;
       let due = e.dueDate ? new Date(e.dueDate) : new Date(start);
-      let guard = 0;
-      while (startOfDay(due) < startOfDay(start) && guard < 600) {
-        due = addByFrequency(due, freq);
-        guard += 1;
+
+      if (startOfDay(due) < startOfDay(start)) {
+        // Bill was due in the cycle that just ended → fund pays it, carry surplus.
+        if (funded) accrued = Math.max(0, accrued - amount);
+        let guard = 0;
+        while (startOfDay(due) < startOfDay(start) && guard < 600) {
+          due = addByFrequency(due, freq);
+          guard += 1;
+        }
+      } else if (funded) {
+        // Not yet due → bank the set-aside made during the cycle that just ended.
+        accrued += fundContribution(e, previousCycle, profile);
       }
-      return makeExpense({
+
+      const next = makeExpense({
         ...e,
         id: uid(),
         frequency: freq,
         dueDate: toISODate(due),
       });
+      if (e.fund) next.fund = { enabled: funded, accrued };
+      return next;
     });
 
   return {

@@ -19,14 +19,14 @@ const SUGGESTIONS = [
 ];
 
 export default function Scenario() {
-  const { cycle, currency } = useApp();
+  const { cycle, currency, profile } = useApp();
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
 
   const result = useMemo(() => {
     if (!cycle || !(Number(amount) > 0)) return null;
-    return evaluateScenario(cycle, Number(amount));
-  }, [cycle, amount]);
+    return evaluateScenario(cycle, Number(amount), profile);
+  }, [cycle, amount, profile]);
 
   if (!cycle) return null;
   const s = result ? STATUS_STYLES[result.status] : null;

@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { X, ArrowRight, Check, Loader2, Sparkles, AlertCircle } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { X, ArrowRight, Check, Loader2, Sparkles, AlertCircle, PiggyBank } from "lucide-react";
 import Button from "./ui/Button.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useApp } from "../context/AppContext.jsx";
@@ -9,10 +9,12 @@ import {
   toPayCycle,
   cycleFraction,
 } from "../lib/growupImport.js";
+import { fundContribution } from "../lib/calculations.js";
 import {
   FREQUENCY_LABELS,
   currencySymbol,
   formatMoneyRound,
+  formatMoney,
   toISODate,
   today,
   addDays,
@@ -35,6 +37,27 @@ export default function GrowUpImport({ onClose }) {
 
   const [payFrequency, setPayFrequency] = useState("fortnightly");
   const [nextPayday, setNextPayday] = useState(toISODate(addDays(today(), 14)));
+  const [fundOff, setFundOff] = useState({}); // expense name -> true if user opted out
+
+  // Recompute the full plan (income + expenses + suggested funds) for the chosen
+  // pay frequency.
+  const plan = useMemo(
+    () => (cashflow ? toPayCycle(cashflow, payFrequency) : null),
+    [cashflow, payFrequency]
+  );
+  const fundedExpenses = useMemo(
+    () => (plan?.expenses || []).filter((e) => e.fund?.enabled),
+    [plan]
+  );
+  const provisionalCycle = useMemo(
+    () => ({ startDate: toISODate(today()), nextPayday }),
+    [nextPayday]
+  );
+  const setAsidePreview = (e) =>
+    fundContribution({ ...e, fund: { enabled: true, accrued: 0 } }, provisionalCycle, {
+      payFrequency,
+    });
+  const toggleFund = (name) => setFundOff((m) => ({ ...m, [name]: !m[name] }));
 
   // Pull the snapshot once we have a session.
   async function loadFor(userId) {
@@ -83,15 +106,21 @@ export default function GrowUpImport({ onClose }) {
   const currency = cashflow?.currency || "AUD";
 
   const apply = async () => {
-    if (!cashflow) return;
+    if (!plan) return;
     setBusy(true);
     try {
-      const { typicalIncome, expenses } = toPayCycle(cashflow, payFrequency);
+      const expenses = plan.expenses.map((e) => {
+        if (e.fund?.enabled && fundOff[e.name]) {
+          const { fund, ...rest } = e; // user opted this fund out
+          return rest;
+        }
+        return e;
+      });
       await completeOnboarding({
         currency,
         payFrequency,
         nextPayday,
-        typicalIncome,
+        typicalIncome: plan.typicalIncome,
         expenses,
       });
       // onboarded flips true → App swaps to Home; this overlay unmounts with it.
@@ -283,6 +312,48 @@ export default function GrowUpImport({ onClose }) {
                 Bills keep their real amounts and due dates — only what's due before each payday counts. Fine-tune anytime.
               </p>
             </div>
+
+            {fundedExpenses.length > 0 && (
+              <div className="rounded-2xl border border-line bg-surface p-4">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-soft text-amber">
+                    <PiggyBank size={15} />
+                  </span>
+                  <div>
+                    <p className="text-[14px] font-semibold">Smart set-asides</p>
+                    <p className="text-[12px] text-muted">
+                      Big, irregular bills — we'll set aside a little each cycle so they're covered when due.
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-3 space-y-2">
+                  {fundedExpenses.map((e) => {
+                    const on = !fundOff[e.name];
+                    const perCycle = setAsidePreview(e);
+                    return (
+                      <div key={e.name} className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-[14px] font-semibold">{e.name}</p>
+                          <p className="text-[12px] text-muted">
+                            {formatMoney(e.amount, currency, { cents: false })} ·{" "}
+                            {on ? `${formatMoney(perCycle, currency, { cents: false })}/cycle` : "not set aside"}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => toggleFund(e.name)}
+                          aria-label={`Toggle set-aside for ${e.name}`}
+                          className={`relative h-6 w-10 shrink-0 rounded-full transition ${on ? "bg-jade" : "bg-line"}`}
+                        >
+                          <span
+                            className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${on ? "left-[18px]" : "left-0.5"}`}
+                          />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             <Button size="block" onClick={apply} disabled={busy}>
               {busy ? <Loader2 size={18} className="animate-spin" /> : <>Use these <ArrowRight size={18} /></>}

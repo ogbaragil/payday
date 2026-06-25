@@ -1,11 +1,19 @@
 import { useEffect, useState } from "react";
-import { Trash2 } from "lucide-react";
+import { Trash2, PiggyBank } from "lucide-react";
 import Sheet from "./ui/Sheet.jsx";
 import Button from "./ui/Button.jsx";
-import { EXPENSE_TYPES } from "../lib/calculations.js";
+import { EXPENSE_TYPES, fundContribution } from "../lib/calculations.js";
 import { EXAMPLE_CHIPS } from "../lib/demoData.js";
-import { currencySymbol, toISODate, today } from "../lib/format.js";
+import { currencySymbol, toISODate, today, startOfDay, formatMoney } from "../lib/format.js";
 import { useApp } from "../context/AppContext.jsx";
+
+const FREQ_OPTS = [
+  { id: "weekly", label: "Weekly" },
+  { id: "fortnightly", label: "Fortnightly" },
+  { id: "monthly", label: "Monthly" },
+  { id: "quarterly", label: "Quarterly" },
+  { id: "yearly", label: "Yearly" },
+];
 
 const empty = () => ({
   name: "",
@@ -13,18 +21,20 @@ const empty = () => ({
   dueDate: toISODate(today()),
   type: "spending",
   recurring: false,
+  frequency: null,
+  fund: null,
   notes: "",
 });
 
 export default function ExpenseSheet({ open, onClose, editing = null, defaultType }) {
-  const { currency, addExpense, editExpense, removeExpense } = useApp();
+  const { currency, profile, cycle, addExpense, editExpense, removeExpense } = useApp();
   const [form, setForm] = useState(empty());
 
   useEffect(() => {
     if (open) {
       setForm(
         editing
-          ? { ...editing, amount: String(editing.amount ?? "") }
+          ? { ...empty(), ...editing, amount: String(editing.amount ?? "") }
           : { ...empty(), type: defaultType || "spending" }
       );
     }
@@ -32,6 +42,32 @@ export default function ExpenseSheet({ open, onClose, editing = null, defaultTyp
 
   const set = (patch) => setForm((f) => ({ ...f, ...patch }));
   const valid = form.name.trim() && Number(form.amount) > 0;
+
+  const toggleRecurring = () => {
+    if (form.recurring) {
+      set({ recurring: false, frequency: null, fund: null });
+    } else {
+      set({ recurring: true, frequency: form.frequency || profile?.payFrequency || "monthly" });
+    }
+  };
+
+  const fundEligible =
+    form.recurring &&
+    ["quarterly", "yearly"].includes(form.frequency) &&
+    form.dueDate &&
+    startOfDay(form.dueDate) > today();
+
+  const setAsidePreview = fundEligible
+    ? fundContribution(
+        {
+          amount: Number(form.amount) || 0,
+          dueDate: form.dueDate,
+          fund: { enabled: true, accrued: Number(form.fund?.accrued) || 0 },
+        },
+        cycle,
+        profile
+      )
+    : 0;
 
   const save = async () => {
     if (!valid) return;
@@ -41,6 +77,8 @@ export default function ExpenseSheet({ open, onClose, editing = null, defaultTyp
       dueDate: form.dueDate,
       type: form.type,
       recurring: form.recurring,
+      frequency: form.recurring ? form.frequency || null : null,
+      fund: form.fund?.enabled ? { enabled: true, accrued: Number(form.fund.accrued) || 0 } : null,
       notes: form.notes?.trim() || "",
     };
     if (editing) await editExpense({ ...editing, ...payload });
@@ -157,7 +195,7 @@ export default function ExpenseSheet({ open, onClose, editing = null, defaultTyp
               Repeats
             </label>
             <button
-              onClick={() => set({ recurring: !form.recurring })}
+              onClick={toggleRecurring}
               className={`flex h-[46px] w-full items-center justify-between rounded-2xl border px-4 transition ${
                 form.recurring ? "border-jade bg-jade-soft" : "border-line bg-surface"
               }`}
@@ -183,6 +221,76 @@ export default function ExpenseSheet({ open, onClose, editing = null, defaultTyp
             </button>
           </div>
         </div>
+
+        {/* Frequency (recurring only) */}
+        {form.recurring && (
+          <div>
+            <label className="mb-2 block px-1 text-xs font-semibold uppercase tracking-wide text-muted">
+              How often
+            </label>
+            <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
+              {FREQ_OPTS.map((f) => (
+                <button
+                  key={f.id}
+                  onClick={() =>
+                    set({
+                      frequency: f.id,
+                      // dropping out of quarterly/yearly clears any fund
+                      ...(["quarterly", "yearly"].includes(f.id) ? {} : { fund: null }),
+                    })
+                  }
+                  className={`shrink-0 rounded-full border px-3.5 py-2 text-[13px] font-semibold transition ${
+                    form.frequency === f.id
+                      ? "border-jade bg-jade-soft text-jade"
+                      : "border-line bg-surface text-muted hover:border-faint"
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Smart set-aside (sinking fund) */}
+        {fundEligible && (
+          <div className="rounded-2xl border border-line bg-surface p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-2">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-soft text-amber">
+                  <PiggyBank size={15} />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-[14px] font-semibold">Smart set-aside</p>
+                  <p className="text-[12px] text-muted">
+                    {form.fund?.enabled
+                      ? `Saving ${formatMoney(setAsidePreview, currency, { cents: false })}/cycle so it's covered when due.`
+                      : "Set aside a little each cycle so this big bill is covered."}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() =>
+                  set({
+                    fund: form.fund?.enabled
+                      ? null
+                      : { enabled: true, accrued: Number(form.fund?.accrued) || 0 },
+                  })
+                }
+                aria-label="Toggle smart set-aside"
+                className={`relative h-6 w-10 shrink-0 rounded-full transition ${
+                  form.fund?.enabled ? "bg-jade" : "bg-line"
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${
+                    form.fund?.enabled ? "left-[18px]" : "left-0.5"
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </Sheet>
   );

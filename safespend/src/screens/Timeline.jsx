@@ -3,7 +3,7 @@ import { Plus, CalendarClock } from "lucide-react";
 import ExpenseSheet from "../components/ExpenseSheet.jsx";
 import { Card } from "../components/ui/Card.jsx";
 import { useApp } from "../context/AppContext.jsx";
-import { upcomingExpenses, COMMITTED_TYPES } from "../lib/calculations.js";
+import { upcomingExpenses, COMMITTED_TYPES, fundCoverage } from "../lib/calculations.js";
 import { typeMeta } from "../lib/typeMeta.js";
 import {
   formatMoney,
@@ -26,7 +26,12 @@ export default function Timeline() {
     let running = Number(cycle.income) || 0;
     const withRunning = items.map((e) => {
       if (e.type === "income") running += Number(e.amount) || 0;
-      else if (COMMITTED_TYPES.includes(e.type)) running -= Number(e.amount) || 0;
+      else if (COMMITTED_TYPES.includes(e.type)) {
+        // A funded bill is paid from its sinking fund — only the shortfall draws
+        // from this cycle's pay.
+        const draw = e.fund?.enabled ? fundCoverage(e).shortfall : Number(e.amount) || 0;
+        running -= draw;
+      }
       return { ...e, running };
     });
     // group by date (ISO)
