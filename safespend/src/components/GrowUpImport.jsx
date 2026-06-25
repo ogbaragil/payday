@@ -9,7 +9,7 @@ import {
   toPayCycle,
   cycleFraction,
 } from "../lib/growupImport.js";
-import { fundContribution } from "../lib/calculations.js";
+import { rawFundContribution } from "../lib/calculations.js";
 import {
   FREQUENCY_LABELS,
   currencySymbol,
@@ -54,7 +54,7 @@ export default function GrowUpImport({ onClose }) {
     [nextPayday]
   );
   const setAsidePreview = (e) =>
-    fundContribution({ ...e, fund: { enabled: true, accrued: 0 } }, provisionalCycle, {
+    rawFundContribution({ ...e, fund: { enabled: true, accrued: 0 } }, provisionalCycle, {
       payFrequency,
     });
   const toggleFund = (name) => setFundOff((m) => ({ ...m, [name]: !m[name] }));

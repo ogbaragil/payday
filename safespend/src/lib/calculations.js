@@ -74,13 +74,13 @@ export function recurrenceCycles(frequency, payFrequency) {
   return Math.max(1, f / p);
 }
 
-// Per-cycle set-aside for a funded FUTURE expense.
+// Per-cycle set-aside for a funded FUTURE expense, BEFORE the cycle-wide cap.
 // • Auto-managed recurring bills smooth across their recurrence interval
 //   (steady-state) so no single cycle is front-loaded — a yearly rego spreads
 //   over ~12 months, not just the lead time to its first due date.
 // • Manual funds and one-offs save up the remainder fully by the due date.
 // Self-correcting — recomputed each cycle from what's left and time remaining.
-export function fundContribution(expense, cycle, profile) {
+export function rawFundContribution(expense, cycle, profile) {
   if (!expense?.fund?.enabled || !profile?.payFrequency) return 0;
   const amount = Number(expense.amount) || 0;
   const accrued = Number(expense.fund.accrued) || 0;
@@ -96,6 +96,43 @@ export function fundContribution(expense, cycle, profile) {
   return remaining / Math.max(1, due - 1);
 }
 
+// The cycle-wide set-aside plan. We never reserve more than is actually free
+// this cycle (income − committed bills), so auto set-aside can't push you into
+// the red. When the raw asks for more than that leftover, every fund is scaled
+// down proportionally to fit. Returns per-expense allocations + the total.
+export function fundPlan(cycle, profile) {
+  const funded = (cycle?.expenses || []).filter(
+    (e) => e?.fund?.enabled && !isDueInCycle(e, cycle)
+  );
+  const raw = new Map();
+  let rawTotal = 0;
+  for (const e of funded) {
+    const c = rawFundContribution(e, cycle, profile);
+    if (c > 0) {
+      raw.set(e.id, c);
+      rawTotal += c;
+    }
+  }
+  const leftover = Math.max(0, totalIncome(cycle) - committedTotal(cycle, profile));
+  const scale = rawTotal > leftover && rawTotal > 0 ? leftover / rawTotal : 1;
+  const alloc = new Map();
+  let total = 0;
+  for (const [id, c] of raw) {
+    const v = c * scale;
+    alloc.set(id, v);
+    total += v;
+  }
+  return { alloc, total, leftover, rawTotal, scale, capped: scale < 1 };
+}
+
+// Effective per-cycle set-aside for one funded expense (after the cap above).
+// Only meaningful for expenses that belong to `cycle`; for a standalone estimate
+// in the editor, use rawFundContribution instead.
+export function fundContribution(expense, cycle, profile) {
+  if (!expense?.fund?.enabled || isDueInCycle(expense, cycle)) return 0;
+  return fundPlan(cycle, profile).alloc.get(expense.id) || 0;
+}
+
 // For a funded expense due THIS cycle: how much the accrued fund covers, and the
 // shortfall (top-up) that still reduces safe-to-spend.
 export function fundCoverage(expense) {
@@ -105,15 +142,16 @@ export function fundCoverage(expense) {
   return { covered, shortfall: Math.max(0, amount - covered) };
 }
 
-// Total set aside this cycle toward upcoming funded expenses.
+// Total set aside this cycle toward upcoming funded expenses (after the cap).
 export function setAsideTotal(cycle, profile) {
   if (!cycle?.expenses || !profile) return 0;
-  return cycle.expenses.reduce((sum, e) => {
-    if (e?.fund?.enabled && !isDueInCycle(e, cycle)) {
-      return sum + fundContribution(e, cycle, profile);
-    }
-    return sum;
-  }, 0);
+  return fundPlan(cycle, profile).total;
+}
+
+// Money actually spent from this cycle's leftover (the discretionary spend log).
+// Recorded per cycle and reset each payday — it's "where the surplus went".
+export function spentTotal(cycle) {
+  return (cycle?.spends || []).reduce((sum, s) => sum + (Number(s.amount) || 0), 0);
 }
 
 // Total money committed away from free spending — only what's due this cycle.
@@ -136,10 +174,15 @@ export function totalIncome(cycle) {
   return (Number(cycle?.income) || 0) + extraIncome(cycle);
 }
 
-// Income − committed (due this cycle) − set-asides for upcoming funds = Safe to Spend
+// Income − committed (due this cycle) − set-asides − money already spent = Safe to Spend
 export function safeToSpend(cycle, profile) {
   if (!cycle) return 0;
-  return totalIncome(cycle) - committedTotal(cycle, profile) - setAsideTotal(cycle, profile);
+  return (
+    totalIncome(cycle) -
+    committedTotal(cycle, profile) -
+    setAsideTotal(cycle, profile) -
+    spentTotal(cycle)
+  );
 }
 
 // Days left until the next payday (never less than 1 for the daily maths).
@@ -175,6 +218,7 @@ export function cycleSummary(cycle, profile, ref = today()) {
     income: totalIncome(cycle),
     committed: committedTotal(cycle, profile),
     setAside: setAsideTotal(cycle, profile),
+    spent: spentTotal(cycle),
     safe: safeToSpend(cycle, profile),
     daysLeft: daysRemaining(cycle, ref),
     perDay: dailyAllowance(cycle, profile, ref),

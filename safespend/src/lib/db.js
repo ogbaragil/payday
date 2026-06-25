@@ -164,6 +164,7 @@ export function buildNextCycle(profile, previousCycle, overrides = {}) {
     nextPayday: toISODate(payday),
     income: overrides.income ?? profile.typicalIncome ?? previousCycle?.income ?? 0,
     expenses: overrides.expenses ?? carried,
+    spends: [],
     createdAt: new Date().toISOString(),
   };
 }

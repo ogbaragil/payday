@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Trash2, PiggyBank } from "lucide-react";
 import Sheet from "./ui/Sheet.jsx";
 import Button from "./ui/Button.jsx";
-import { EXPENSE_TYPES, fundContribution, cyclesUntilDue } from "../lib/calculations.js";
+import { EXPENSE_TYPES, rawFundContribution, cyclesUntilDue } from "../lib/calculations.js";
 import { EXAMPLE_CHIPS } from "../lib/demoData.js";
 import { currencySymbol, toISODate, today, formatMoney } from "../lib/format.js";
 import { useApp } from "../context/AppContext.jsx";
@@ -63,7 +63,7 @@ export default function ExpenseSheet({ open, onClose, editing = null, defaultTyp
     (!form.recurring || ["quarterly", "yearly"].includes(form.frequency));
 
   const setAsidePreview = fundEligible
-    ? fundContribution(
+    ? rawFundContribution(
         {
           amount: Number(form.amount) || 0,
           dueDate: form.dueDate,

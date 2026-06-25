@@ -122,6 +122,36 @@ export function AppProvider({ children }) {
     [cycle]
   );
 
+  // --- spend log (where this cycle's leftover actually goes) -----------
+  const logSpend = useCallback(
+    async ({ name, amount, note } = {}) => {
+      if (!cycle) return;
+      const amt = Number(amount) || 0;
+      if (amt <= 0) return;
+      const spend = {
+        id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()),
+        name: (name || "").trim() || "Spend",
+        amount: amt,
+        note: (note || "").trim() || null,
+        date: new Date().toISOString(),
+      };
+      const next = { ...cycle, spends: [...(cycle.spends || []), spend] };
+      setCycle(next);
+      await db.saveCycle(next);
+    },
+    [cycle]
+  );
+
+  const removeSpend = useCallback(
+    async (id) => {
+      if (!cycle) return;
+      const next = { ...cycle, spends: (cycle.spends || []).filter((s) => s.id !== id) };
+      setCycle(next);
+      await db.saveCycle(next);
+    },
+    [cycle]
+  );
+
   // --- new pay cycle ---------------------------------------------------
   const startNewCycle = useCallback(
     async (overrides) => {
@@ -171,6 +201,8 @@ export function AppProvider({ children }) {
       editExpense,
       removeExpense,
       setIncome,
+      logSpend,
+      removeSpend,
       startNewCycle,
       loadDemo,
       exportData,
@@ -179,7 +211,7 @@ export function AppProvider({ children }) {
     }),
     [
       loading, profile, cycle, completeOnboarding, updateProfile, addExpense,
-      editExpense, removeExpense, setIncome, startNewCycle, loadDemo,
+      editExpense, removeExpense, setIncome, logSpend, removeSpend, startNewCycle, loadDemo,
       exportData, importData, resetData,
     ]
   );

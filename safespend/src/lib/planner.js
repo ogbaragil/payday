@@ -1,11 +1,11 @@
 // ---------------------------------------------------------------------------
 // Forward-look planner
 // ---------------------------------------------------------------------------
-// Looks ahead across upcoming pay cycles and proactively reserves for the big,
-// must-pay bills that would otherwise sink a future cycle. It DECIDES what to
-// reserve with a fund-blind "gross" projection (stable, doesn't chase its own
-// tail), then leans on the existing sinking-fund engine to actually set aside
-// the per-cycle slice, accrue it, and cover the bill when due.
+// Looks ahead across upcoming pay cycles and reserves for every cost that lands
+// in a future cycle — bills, debts, spending, and savings goals alike. It simply
+// enables a fund on each future, lumpy item; HOW MUCH is actually set aside each
+// cycle is decided by fundPlan (in calculations.js), which caps the total at
+// what's free this cycle so reserving can never push you into the red.
 //
 // Auto-managed funds are tagged { auto: true }. A fund the user has explicitly
 // set or dismissed is tagged { auto: false } and is never touched here.
@@ -15,11 +15,11 @@ import { addByFrequency, startOfDay } from "./format.js";
 import { cyclesUntilDue, cycleSummary, recurrenceCycles } from "./calculations.js";
 import { buildNextCycle } from "./db.js";
 
-// Only must-pay items are auto-reserved. Discretionary savings goals and loose
-// spending stay the user's call (they can fund those manually).
-const AUTO_TYPES = ["bill", "debt"];
+// Auto set-aside reserves for ALL expense categories — bills, debts, spending,
+// and savings goals alike. (Income isn't a cost, so it's never reserved.) How
+// much is reserved is capped per cycle by fundPlan so it never overdraws you.
+const AUTO_TYPES = ["bill", "debt", "spending", "saving"];
 // A single bill counts as "big" once it passes half a cycle's pay.
-const BIG_FRACTION = 0.5;
 const PER_YEAR = { weekly: 52, fortnightly: 26, monthly: 12 };
 
 export function horizonCycles(payFrequency, months = 12) {
@@ -97,40 +97,26 @@ export function reconcileAutoFunds(cycle, profile, months = 12) {
     return changed ? { ...cycle, expenses } : cycle;
   }
 
-  const horizon = horizonCycles(pay, months);
-  const typical = Number(profile?.typicalIncome) || 0;
-  const big = typical * BIG_FRACTION;
-  const gross = projectGrossWindows({ ...cycle, expenses }, profile, horizon);
-  const redWindows = gross.windows.filter((w, i) => i > 0 && w.red);
-  const from = gross.windows[0].start;
-  const to = gross.windows[gross.windows.length - 1].end;
-
   const userControlled = (e) => e.fund && e.fund.auto === false;
-  // Lumpy = a one-off, or a bill that recurs LESS often than the pay cycle.
-  // A bill due every cycle can't be smoothed (you just pay it each time).
+  // Lumpy = a one-off, or an item that recurs LESS often than the pay cycle.
+  // Something due every cycle can't be smoothed (you just pay it each time).
   const isLumpy = (e) => (e.recurring ? recurrenceCycles(e.frequency, pay) > 1.5 : true);
   const isFuture = (e) =>
     AUTO_TYPES.includes(e.type) &&
     e.dueDate &&
     !userControlled(e) &&
     cyclesUntilDue(e.dueDate, cycle, pay) > 1;
-  const landsInRed = (e) => {
-    if (!redWindows.length) return false;
-    for (const d of occurrences(e, pay, from, to)) {
-      if (redWindows.some((w) => d >= w.start && d < w.end)) return true;
-    }
-    return false;
-  };
 
   let changed = false;
   for (const e of expenses) {
-    const shouldFund =
-      isFuture(e) && isLumpy(e) && ((Number(e.amount) || 0) >= big || landsInRed(e));
+    // Reserve for everything that lands in a future cycle — the per-cycle cap in
+    // fundPlan decides how much is actually affordable, never overdrawing you.
+    const shouldFund = isFuture(e) && isLumpy(e);
     if (shouldFund && !e.fund?.enabled) {
       e.fund = { enabled: true, accrued: Number(e.fund?.accrued) || 0, auto: true };
       changed = true;
     } else if (!shouldFund && e.fund?.auto) {
-      // No longer warranted — but keep it if it's due THIS cycle, so the bill is
+      // No longer warranted — but keep it if it's due THIS cycle, so the item is
       // still covered by what we've already set aside. Rollover resets it after.
       const dueNow = cyclesUntilDue(e.dueDate, cycle, pay) <= 1;
       if (!dueNow) {

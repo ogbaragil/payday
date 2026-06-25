@@ -2,18 +2,19 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Plus, ArrowDownLeft, RefreshCw, ChevronRight, ArrowUpRight,
-  CalendarCheck, TrendingUp, Wallet, PiggyBank, Telescope, Star,
+  CalendarCheck, TrendingUp, Receipt, PiggyBank, Telescope, Star, Trash2,
 } from "lucide-react";
 import SafeSpendCard from "../components/SafeSpendCard.jsx";
 import ExpenseSheet from "../components/ExpenseSheet.jsx";
 import NewCycleSheet from "../components/NewCycleSheet.jsx";
+import SpendSheet from "../components/SpendSheet.jsx";
 import { Card } from "../components/ui/Card.jsx";
 import { typeMeta } from "../lib/typeMeta.js";
 import { useApp } from "../context/AppContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { cycleSummary, upcomingExpenses } from "../lib/calculations.js";
 import { forwardLookSummary } from "../lib/planner.js";
-import { formatMoney, formatDate, today, daysBetween } from "../lib/format.js";
+import { formatMoney, formatDate, today, daysBetween, relativeTime } from "../lib/format.js";
 import { firstNameFrom } from "../lib/user.js";
 
 function StatCard({ icon: Icon, tint, label, value, caption }) {
@@ -30,11 +31,12 @@ function StatCard({ icon: Icon, tint, label, value, caption }) {
 }
 
 export default function Home() {
-  const { cycle, currency, profile } = useApp();
+  const { cycle, currency, profile, removeSpend } = useApp();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [sheet, setSheet] = useState(null);
   const [newCycle, setNewCycle] = useState(false);
+  const [spendSheet, setSpendSheet] = useState(false);
 
   const summary = useMemo(() => cycleSummary(cycle, profile), [cycle, profile]);
   const forward = useMemo(() => {
@@ -56,6 +58,7 @@ export default function Home() {
   const daysSince = Math.max(0, daysBetween(cycle.startDate, today()));
   const todayBills = upcoming.filter((e) => daysBetween(today(), e.dueDate) === 0 && e.type !== "income");
   const nextBill = upcoming.find((e) => e.type !== "income" && daysBetween(today(), e.dueDate) > 0);
+  const spends = [...(cycle.spends || [])].reverse();
 
   return (
     <div className="space-y-5">
@@ -137,8 +140,8 @@ export default function Home() {
           caption="until payday"
         />
         <StatCard
-          icon={Wallet} tint="bg-blue-soft text-blue"
-          label="Committed" value={formatMoney(summary.committed, currency, { cents: false })}
+          icon={Receipt} tint="bg-blue-soft text-blue"
+          label="Spent" value={formatMoney(summary.spent, currency, { cents: false })}
           caption="this cycle"
         />
         <StatCard
@@ -160,6 +163,61 @@ export default function Home() {
           <RefreshCw size={19} /><span className="text-[12px] font-semibold">New cycle</span>
         </button>
       </div>
+
+      {/* Spending money — where this cycle's leftover goes */}
+      {!summary.complete && (
+        <section>
+          <div className="mb-2 flex items-center justify-between px-1">
+            <h2 className="font-display text-[16px] font-bold tracking-tight">Spending money</h2>
+            <button onClick={() => setSpendSheet(true)} className="flex items-center gap-0.5 text-[13px] font-semibold text-iris">
+              <Plus size={15} /> Log a spend
+            </button>
+          </div>
+          <Card className="overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3.5">
+              <div>
+                <p className="text-[12px] font-medium text-muted">Spent this cycle</p>
+                <p className="font-display text-[20px] font-extrabold tnum">{formatMoney(summary.spent, currency, { cents: false })}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[12px] font-medium text-muted">Safe to spend</p>
+                <p className={`font-display text-[20px] font-extrabold tnum ${summary.safe < 0 ? "text-clay" : "text-jade"}`}>
+                  {formatMoney(summary.safe, currency, { cents: false })}
+                </p>
+              </div>
+            </div>
+            {spends.length > 0 ? (
+              <div className="divide-y divide-line/60 border-t border-line/60">
+                {spends.map((s) => (
+                  <div key={s.id} className="flex items-center gap-3 px-4 py-2.5">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-blue-soft text-blue">
+                      <Receipt size={15} />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[14px] font-semibold">{s.name}</span>
+                      <span className="block text-[11px] text-muted">{relativeTime(s.date)}</span>
+                    </span>
+                    <span className="shrink-0 text-[14px] font-bold tnum">−{formatMoney(s.amount, currency, { cents: false })}</span>
+                    <button onClick={() => removeSpend(s.id)} aria-label="Remove spend" className="shrink-0 text-faint transition hover:text-clay">
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="border-t border-line/60 px-4 py-5 text-center text-[13px] text-muted">
+                Nothing logged yet. Record a purchase to see where your leftover goes.
+              </p>
+            )}
+            <button
+              onClick={() => setSpendSheet(true)}
+              className="flex w-full items-center justify-center gap-1.5 border-t border-line/60 bg-iris-soft/40 py-3 text-[14px] font-semibold text-iris transition active:bg-iris-soft"
+            >
+              <Plus size={16} /> Log a spend
+            </button>
+          </Card>
+        </section>
+      )}
 
       {/* Upcoming */}
       <section>
@@ -250,6 +308,7 @@ export default function Home() {
       <ExpenseSheet open={sheet === "expense"} onClose={() => setSheet(null)} defaultType="spending" />
       <ExpenseSheet open={sheet === "income"} onClose={() => setSheet(null)} defaultType="income" />
       <NewCycleSheet open={newCycle} onClose={() => setNewCycle(false)} />
+      <SpendSheet open={spendSheet} onClose={() => setSpendSheet(false)} />
     </div>
   );
 }

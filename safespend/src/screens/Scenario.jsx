@@ -5,7 +5,7 @@ import { Card } from "../components/ui/Card.jsx";
 import { useApp } from "../context/AppContext.jsx";
 import { cycleSummary } from "../lib/calculations.js";
 import { planForwardCycles } from "../lib/planner.js";
-import { formatMoney, currencySymbol, toISODate, today } from "../lib/format.js";
+import { formatMoney, currencySymbol } from "../lib/format.js";
 
 const COST_CHIPS = [20, 50, 100, 200];
 const TIMING = [
@@ -22,7 +22,7 @@ const VERDICT = {
 };
 
 export default function Scenario() {
-  const { cycle, currency, profile, addExpense } = useApp();
+  const { cycle, currency, profile, addExpense, logSpend } = useApp();
   const navigate = useNavigate();
   const [amount, setAmount] = useState("");
   const [name, setName] = useState("");
@@ -47,8 +47,13 @@ export default function Scenario() {
 
   const buy = async () => {
     if (!has) return;
-    const dueDate = timing === "payday" ? cycle.nextPayday : toISODate(today());
-    await addExpense({ name: name.trim() || "Purchase", amount: spend, type: "spending", dueDate, recurring: false });
+    if (timing === "payday") {
+      // A purchase you'll make next cycle → plan it as a future spend.
+      await addExpense({ name: name.trim() || "Purchase", amount: spend, type: "spending", dueDate: cycle.nextPayday, recurring: false });
+    } else {
+      // Buying it now → record it in this cycle's spend log.
+      await logSpend({ name: name.trim() || "Purchase", amount: spend });
+    }
     setAdded(true);
     setTimeout(() => { setAdded(false); setAmount(""); setName(""); }, 1400);
   };
