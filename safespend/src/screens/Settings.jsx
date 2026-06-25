@@ -13,6 +13,7 @@ import {
   Coins,
   CalendarClock,
   CalendarDays,
+  Telescope,
 } from "lucide-react";
 import { Card } from "../components/ui/Card.jsx";
 import Sheet from "../components/ui/Sheet.jsx";
@@ -113,6 +114,40 @@ export default function Settings() {
             value={formatDateLong(profile.nextPayday)}
             onClick={() => setSheet("payday")}
           />
+        </Card>
+      </div>
+
+      <div>
+        <p className="mb-2 px-2 text-[12px] font-semibold uppercase tracking-wide text-muted">
+          Planning
+        </p>
+        <Card className="p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-jade-soft text-jade">
+                <Telescope size={18} />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[15px] font-semibold">Auto set-aside</p>
+                <p className="text-[13px] text-muted">
+                  Look ahead and reserve for big bills so future cycles stay covered.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => updateProfile({ autoSetAside: profile.autoSetAside === false })}
+              aria-label="Toggle auto set-aside"
+              className={`relative h-6 w-10 shrink-0 rounded-full transition ${
+                profile.autoSetAside === false ? "bg-line" : "bg-jade"
+              }`}
+            >
+              <span
+                className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${
+                  profile.autoSetAside === false ? "left-0.5" : "left-[18px]"
+                }`}
+              />
+            </button>
+          </div>
         </Card>
       </div>
 

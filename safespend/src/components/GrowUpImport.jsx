@@ -123,8 +123,7 @@ export default function GrowUpImport({ onClose }) {
     try {
       const expenses = plan.expenses.map((e) => {
         if (e.fund?.enabled && fundOff[e.name]) {
-          const { fund, ...rest } = e; // user opted this fund out
-          return rest;
+          return { ...e, fund: { enabled: false, accrued: 0, auto: false } }; // user opted out
         }
         return e;
       });

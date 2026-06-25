@@ -168,7 +168,7 @@ export function toPayCycle(cashflow, payFrequency) {
       dueDate: e.dueDate,
     });
     if (suggestsFund(exp, typicalIncome)) {
-      exp.fund = { enabled: true, accrued: 0 };
+      exp.fund = { enabled: true, accrued: 0, auto: true };
     }
     return exp;
   });

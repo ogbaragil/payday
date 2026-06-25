@@ -60,17 +60,40 @@ export function cyclesUntilDue(dueDateISO, cycle, payFrequency) {
   return n;
 }
 
-// Per-cycle set-aside for a funded FUTURE expense: spread the remaining amount
-// across the cycles before it's due, so the fund is full by the due date.
+// Average days per occurrence, used to translate a bill's frequency into how
+// many pay cycles it spans (for steady-state smoothing of recurring bills).
+const FREQ_DAYS = { weekly: 7, fortnightly: 14, monthly: 30.44, quarterly: 91.31, yearly: 365.25 };
+const CYCLE_DAYS = { weekly: 7, fortnightly: 14, monthly: 30.44 };
+
+// How many pay cycles one recurrence of this bill spans (e.g. a yearly bill on
+// fortnightly pay ≈ 26 cycles). Clamped to ≥ 1.
+export function recurrenceCycles(frequency, payFrequency) {
+  const f = FREQ_DAYS[frequency];
+  const p = CYCLE_DAYS[payFrequency] || 14;
+  if (!f) return 1;
+  return Math.max(1, f / p);
+}
+
+// Per-cycle set-aside for a funded FUTURE expense.
+// • Auto-managed recurring bills smooth across their recurrence interval
+//   (steady-state) so no single cycle is front-loaded — a yearly rego spreads
+//   over ~12 months, not just the lead time to its first due date.
+// • Manual funds and one-offs save up the remainder fully by the due date.
 // Self-correcting — recomputed each cycle from what's left and time remaining.
 export function fundContribution(expense, cycle, profile) {
   if (!expense?.fund?.enabled || !profile?.payFrequency) return 0;
-  const remaining = Math.max(0, (Number(expense.amount) || 0) - (Number(expense.fund.accrued) || 0));
+  const amount = Number(expense.amount) || 0;
+  const accrued = Number(expense.fund.accrued) || 0;
+  const remaining = Math.max(0, amount - accrued);
   if (remaining <= 0) return 0;
   const due = cyclesUntilDue(expense.dueDate, cycle, profile.payFrequency);
   if (due <= 1) return 0; // due this cycle → handled as a due bill, not a set-aside
-  const contributionsLeft = Math.max(1, due - 1);
-  return remaining / contributionsLeft;
+
+  if (expense.fund.auto && expense.recurring && expense.frequency) {
+    const rc = recurrenceCycles(expense.frequency, profile.payFrequency);
+    if (rc > 1) return Math.min(remaining, amount / rc);
+  }
+  return remaining / Math.max(1, due - 1);
 }
 
 // For a funded expense due THIS cycle: how much the accrued fund covers, and the

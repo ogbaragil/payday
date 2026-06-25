@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, useCallback } from "react";
 import * as db from "../lib/db.js";
 import { buildDemoCycle, buildDemoProfile, makeExpense } from "../lib/demoData.js";
+import { reconcileAutoFunds } from "../lib/planner.js";
 
 const AppContext = createContext(null);
 
@@ -24,6 +25,18 @@ export function AppProvider({ children }) {
     };
   }, []);
 
+  // Forward-look auto set-aside: whenever the plan changes (expenses, income, or
+  // the setting itself), re-decide what to reserve. reconcileAutoFunds returns
+  // the SAME cycle reference when nothing changed, so this can't loop.
+  useEffect(() => {
+    if (loading || !cycle || !profile) return;
+    const next = reconcileAutoFunds(cycle, profile);
+    if (next !== cycle) {
+      setCycle(next);
+      db.saveCycle(next).catch(() => {});
+    }
+  }, [loading, cycle, profile]);
+
   // --- onboarding / profile -------------------------------------------
   const completeOnboarding = useCallback(async (form) => {
     const newProfile = {
@@ -33,6 +46,7 @@ export function AppProvider({ children }) {
       payFrequency: form.payFrequency,
       nextPayday: form.nextPayday,
       typicalIncome: Number(form.typicalIncome) || 0,
+      autoSetAside: form.autoSetAside !== false, // forward-look auto set-aside, on by default
     };
     // Spin up the user's first real cycle from their answers.
     const firstCycle = {

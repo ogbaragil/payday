@@ -147,14 +147,14 @@ export function buildNextCycle(profile, previousCycle, overrides = {}) {
           accrued += fundContribution(e, previousCycle, profile);
         }
         const next = makeExpense({ ...e, id: uid(), frequency: freq, dueDate: toISODate(due) });
-        if (e.fund) next.fund = { enabled: funded, accrued };
+        if (e.fund) next.fund = { enabled: funded, accrued, auto: Boolean(e.fund.auto) };
         return next;
       }
 
       // One-off, still upcoming → carry forward; accrue toward it if funded.
       if (funded) accrued += fundContribution(e, previousCycle, profile);
       const next = makeExpense({ ...e, id: uid(), dueDate: toISODate(due) });
-      if (e.fund) next.fund = { enabled: funded, accrued };
+      if (e.fund) next.fund = { enabled: funded, accrued, auto: Boolean(e.fund.auto) };
       return next;
     });
 

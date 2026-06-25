@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, ArrowDownLeft, Sparkles, RefreshCw, ArrowUpRight, PiggyBank } from "lucide-react";
+import { Plus, ArrowDownLeft, Sparkles, RefreshCw, ArrowUpRight, Telescope } from "lucide-react";
 import SafeSpendCard from "../components/SafeSpendCard.jsx";
 import ExpenseRow from "../components/ExpenseRow.jsx";
 import ExpenseSheet from "../components/ExpenseSheet.jsx";
@@ -9,6 +9,7 @@ import { Card, SectionTitle } from "../components/ui/Card.jsx";
 import { useApp } from "../context/AppContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { cycleSummary, upcomingExpenses } from "../lib/calculations.js";
+import { forwardLookSummary } from "../lib/planner.js";
 import { formatMoney, formatDate, today, daysBetween } from "../lib/format.js";
 import { firstNameFrom } from "../lib/user.js";
 
@@ -36,6 +37,13 @@ export default function Home() {
   const [newCycle, setNewCycle] = useState(false);
 
   const summary = useMemo(() => cycleSummary(cycle, profile), [cycle, profile]);
+  const forward = useMemo(() => {
+    try {
+      return forwardLookSummary(cycle, profile, 12);
+    } catch {
+      return null;
+    }
+  }, [cycle, profile]);
   const upcoming = useMemo(
     () => upcomingExpenses(cycle).filter((e) => daysBetween(today(), e.dueDate) >= 0).slice(0, 4),
     [cycle]
@@ -77,13 +85,38 @@ export default function Home() {
         <SafeSpendCard summary={summary} currency={currency} payday={formatDate(cycle.nextPayday, { day: "numeric", month: "short" })} />
       )}
 
-      {!summary.complete && summary.setAside > 0 && (
-        <div className="-mt-2 flex items-center gap-2 rounded-2xl bg-amber-soft/50 px-4 py-2.5">
-          <PiggyBank size={16} className="shrink-0 text-amber" />
-          <p className="text-[13px] text-ink">
-            <span className="font-semibold tnum">{formatMoney(summary.setAside, currency, { cents: false })}</span>{" "}
-            set aside this cycle for upcoming bills.
-          </p>
+      {!summary.complete && forward && (forward.reservedTotal > 0 || forward.firstRed) && (
+        <div className="-mt-2 rounded-2xl border border-line bg-surface p-4">
+          <div className="mb-1 flex items-center gap-2">
+            <Telescope size={16} className="text-jade" />
+            <span className="text-[14px] font-semibold">Looking ahead</span>
+          </div>
+          {forward.reservedTotal > 0 && (
+            <p className="text-[13px] text-muted">
+              Auto set-aside is reserving{" "}
+              <span className="font-semibold text-ink tnum">
+                {formatMoney(forward.reservedTotal, currency, { cents: false })}
+              </span>
+              /cycle for upcoming bills
+              {forward.reservedItems.length
+                ? ` like ${forward.reservedItems.slice(0, 2).join(", ")}`
+                : ""}
+              .
+            </p>
+          )}
+          {forward.firstRed ? (
+            <p className="mt-1.5 text-[13px] font-medium text-clay">
+              Heads up: the cycle around {formatDate(forward.firstRed.payday, { day: "numeric", month: "short" })} still
+              falls short by {formatMoney(Math.abs(forward.firstRed.safe), currency, { cents: false })}. Consider easing a
+              bill or moving a goal.
+            </p>
+          ) : (
+            forward.reservedTotal > 0 && (
+              <p className="mt-1.5 text-[13px] font-medium text-jade">
+                On track — your bills are covered for the next {forward.horizonMonths} months.
+              </p>
+            )
+          )}
         </div>
       )}
 

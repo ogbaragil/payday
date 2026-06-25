@@ -83,7 +83,13 @@ export default function ExpenseSheet({ open, onClose, editing = null, defaultTyp
       type: form.type,
       recurring: form.recurring,
       frequency: form.recurring ? form.frequency || null : null,
-      fund: form.fund?.enabled ? { enabled: true, accrued: Number(form.fund.accrued) || 0 } : null,
+      fund: form.fund
+        ? {
+            enabled: Boolean(form.fund.enabled),
+            accrued: Number(form.fund.accrued) || 0,
+            auto: form.fund.auto === true,
+          }
+        : null,
       notes: form.notes?.trim() || "",
     };
     if (editing) await editExpense({ ...editing, ...payload });
@@ -278,8 +284,8 @@ export default function ExpenseSheet({ open, onClose, editing = null, defaultTyp
                 onClick={() =>
                   set({
                     fund: form.fund?.enabled
-                      ? null
-                      : { enabled: true, accrued: Number(form.fund?.accrued) || 0 },
+                      ? { enabled: false, accrued: 0, auto: false } // user opted out
+                      : { enabled: true, accrued: Number(form.fund?.accrued) || 0, auto: false },
                   })
                 }
                 aria-label="Toggle smart set-aside"

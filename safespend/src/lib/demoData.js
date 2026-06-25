@@ -57,6 +57,7 @@ export function buildDemoProfile() {
     payFrequency: "fortnightly",
     nextPayday: toISODate(addDays(today(), 10)),
     typicalIncome: 2100,
+    autoSetAside: true,
   };
 }
 
