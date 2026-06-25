@@ -43,6 +43,20 @@ export function AuthProvider({ children }) {
     return data;
   }, []);
 
+  const signInWithGoogle = useCallback(async () => {
+    // Full-page redirect to Google → back to our origin. The client picks up the
+    // session from the return URL (detectSessionInUrl) and fires onAuthStateChange.
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: window.location.origin,
+        queryParams: { prompt: "select_account" },
+      },
+    });
+    if (error) throw error;
+    return data; // nothing after this runs — the browser navigates away
+  }, []);
+
   const signOut = useCallback(async () => {
     await supabase?.auth.signOut();
   }, []);
@@ -56,9 +70,10 @@ export function AuthProvider({ children }) {
       email: session?.user?.email || null,
       signUp,
       signIn,
+      signInWithGoogle,
       signOut,
     }),
-    [ready, session, signUp, signIn, signOut]
+    [ready, session, signUp, signIn, signInWithGoogle, signOut]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
