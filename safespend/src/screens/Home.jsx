@@ -292,7 +292,7 @@ export default function Home() {
           )}
           {forward.firstRed ? (
             <p className="mt-1.5 text-[13px] font-medium text-clay">
-              Heads up: the cycle around {formatDate(forward.firstRed.payday, { day: "numeric", month: "short" })} still falls
+              Heads up: the cycle starting {formatDate(forward.firstRed.start, { day: "numeric", month: "short" })} still falls
               short by {formatMoney(Math.abs(forward.firstRed.safe), currency, { cents: false })}. Consider easing a bill or moving a goal.
             </p>
           ) : (

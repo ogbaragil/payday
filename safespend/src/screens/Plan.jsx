@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Plus, Pencil, Target } from "lucide-react";
+import { Plus, Pencil, Target, PiggyBank } from "lucide-react";
 import ExpenseSheet from "../components/ExpenseSheet.jsx";
 import { Card } from "../components/ui/Card.jsx";
 import ProgressRing from "../components/ui/ProgressRing.jsx";
@@ -209,24 +209,34 @@ export default function Plan() {
                   const due = isDueInCycle(e, cycle);
                   const isFunded = Boolean(e.fund?.enabled);
                   const muted = !due && !isFunded;
-                  let sub;
+                  // Due-date is the primary info. The per-cycle set-aside amount
+                  // lives in the Set-aside progress card above, so rows just show
+                  // a small "set aside" marker rather than repeating the figure.
+                  let sub = e.dueDate
+                    ? due
+                      ? `Due ${relativeDay(e.dueDate)}`
+                      : `Due ${formatDate(e.dueDate)} · later cycle`
+                    : e.recurring
+                    ? "Repeats each cycle"
+                    : "";
                   if (isFunded && due) {
                     const { shortfall } = fundCoverage(e);
-                    sub = shortfall > 0 ? `Covered by fund · ${formatMoney(shortfall, currency, { cents: false })} top-up` : "Covered by fund";
-                  } else if (isFunded) {
-                    const per = fundContribution(e, cycle, profile);
-                    const accrued = Number(e.fund.accrued) || 0;
-                    sub = `Setting aside ${formatMoney(per, currency, { cents: false })}/cycle · ${formatMoney(accrued, currency, { cents: false })} of ${formatMoney(e.amount, currency, { cents: false })}`;
-                  } else if (e.dueDate) {
-                    sub = due ? `Due ${relativeDay(e.dueDate)}` : `Due ${formatDate(e.dueDate)} · later cycle`;
-                  } else {
-                    sub = e.recurring ? "Repeats each cycle" : "";
+                    sub = shortfall > 0
+                      ? `${sub} · fund covers the rest`
+                      : `${sub} · covered by fund`;
                   }
                   return (
                     <button key={e.id} onClick={() => setEditing(e)} className={`flex w-full items-center justify-between px-3 py-3 text-left transition active:bg-elevated ${muted ? "opacity-55" : ""}`}>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-[15px] font-semibold">{e.name}</span>
-                        <span className={`text-[12px] ${isFunded ? "text-amber" : "text-muted"}`}>{sub}</span>
+                        <span className="flex items-center gap-1.5">
+                          <span className="truncate text-[15px] font-semibold">{e.name}</span>
+                          {isFunded && (
+                            <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-amber-soft px-1.5 py-0.5 text-[10px] font-bold text-amber">
+                              <PiggyBank size={10} /> Set aside
+                            </span>
+                          )}
+                        </span>
+                        <span className="block text-[12px] text-muted">{sub}</span>
                       </span>
                       <span className={`text-[15px] font-semibold tnum ${muted ? "text-muted" : ""}`}>
                         {formatMoney(e.amount, currency, { cents: false })}
