@@ -1,9 +1,9 @@
 const VARIANTS = {
   primary:
-    "bg-jade text-white shadow-soft hover:brightness-105 active:brightness-95",
-  dark: "bg-ink text-white hover:bg-ink/90 active:bg-ink",
-  soft: "bg-jade-soft text-jade hover:bg-jade-soft/70 active:bg-jade-soft",
-  ghost: "bg-surface text-ink border border-line hover:bg-elevated active:bg-elevated",
+    "bg-iris text-white shadow-iris hover:brightness-110 active:brightness-95",
+  dark: "bg-hero text-white hover:bg-hero-2 active:bg-hero",
+  soft: "bg-iris-soft text-iris hover:brightness-[0.97] active:brightness-95",
+  ghost: "bg-surface text-iris border border-iris/25 hover:bg-iris-soft/50 active:bg-iris-soft",
   quiet: "bg-transparent text-muted hover:text-ink",
   danger: "bg-clay-soft text-clay hover:brightness-105 active:brightness-95",
 };

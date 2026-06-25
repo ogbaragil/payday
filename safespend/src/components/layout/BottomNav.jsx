@@ -1,17 +1,17 @@
 import { NavLink } from "react-router-dom";
-import { Home, CalendarClock, Wallet, Sparkles, Settings } from "lucide-react";
+import { LayoutGrid, ClipboardList, CalendarDays, ShoppingBag, Settings } from "lucide-react";
 
 const ITEMS = [
-  { to: "/", label: "Home", icon: Home, end: true },
-  { to: "/timeline", label: "Timeline", icon: CalendarClock },
-  { to: "/plan", label: "Plan", icon: Wallet },
-  { to: "/scenario", label: "Scenario", icon: Sparkles },
+  { to: "/", label: "Overview", icon: LayoutGrid, end: true },
+  { to: "/plan", label: "Plan", icon: ClipboardList },
+  { to: "/timeline", label: "Timeline", icon: CalendarDays },
+  { to: "/scenario", label: "Can I Buy?", icon: ShoppingBag },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
 
 export default function BottomNav() {
   return (
-    <nav className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-line/70 bg-surface/85 backdrop-blur-xl">
+    <nav className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-line/70 bg-surface/90 backdrop-blur-xl">
       <div className="mx-auto flex max-w-md items-stretch justify-around px-2 pt-1.5">
         {ITEMS.map(({ to, label, icon: Icon, end }) => (
           <NavLink
@@ -24,14 +24,14 @@ export default function BottomNav() {
               <>
                 <span
                   className={`flex h-9 w-12 items-center justify-center rounded-full transition-all duration-200 ${
-                    isActive ? "bg-jade-soft text-jade" : "text-faint group-hover:text-muted"
+                    isActive ? "bg-iris text-white shadow-iris" : "text-faint group-hover:text-muted"
                   }`}
                 >
                   <Icon size={20} strokeWidth={isActive ? 2.4 : 2} />
                 </span>
                 <span
                   className={`text-[10px] font-semibold tracking-tight transition-colors ${
-                    isActive ? "text-ink" : "text-faint"
+                    isActive ? "text-iris" : "text-faint"
                   }`}
                 >
                   {label}

@@ -4,24 +4,38 @@
 
 @layer base {
   :root {
-    /* Warm paper, not yellow-cream */
-    --bg: 246 246 244;
+    /* Cool, soft canvas */
+    --bg: 244 245 248;
     --surface: 255 255 255;
-    --elevated: 252 252 250;
-    --ink: 22 25 29;
-    --muted: 118 123 132;
-    --faint: 158 163 170;
-    --line: 232 232 228;
+    --elevated: 247 248 251;
+    --ink: 17 20 27;
+    --muted: 112 118 130;
+    --faint: 158 164 175;
+    --line: 229 231 237;
 
-    /* Signature: deep jade = money-positive, calm not alarming */
-    --jade: 19 122 95;
-    --jade-soft: 226 243 237;
+    /* Primary: electric iris (actions, nav, brand) */
+    --iris: 88 68 244;
+    --iris-soft: 236 234 254;
 
-    --amber: 176 113 25;
-    --amber-soft: 248 240 224;
+    /* Near-black hero surface */
+    --hero: 14 17 24;
+    --hero-2: 26 30 41;
 
-    --clay: 188 78 56;
-    --clay-soft: 248 233 228;
+    /* Positive money — deep on light, mint on dark */
+    --jade: 17 125 94;
+    --jade-soft: 224 244 236;
+    --mint: 38 201 126;
+    --mint-soft: 222 247 235;
+
+    /* Category accent */
+    --blue: 56 130 246;
+    --blue-soft: 224 237 254;
+
+    --amber: 197 126 22;
+    --amber-soft: 250 240 221;
+
+    --clay: 199 84 60;
+    --clay-soft: 250 232 227;
 
     color-scheme: light;
   }

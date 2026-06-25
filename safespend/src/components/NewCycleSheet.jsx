@@ -108,7 +108,7 @@ export default function NewCycleSheet({ open, onClose }) {
                     </span>
                     <span
                       className={`flex h-6 w-6 items-center justify-center rounded-full border-2 transition ${
-                        on ? "border-jade bg-jade" : "border-line"
+                        on ? "border-iris bg-iris" : "border-line"
                       }`}
                     >
                       {on && <Check size={13} className="text-white" strokeWidth={3} />}

@@ -124,7 +124,7 @@ export default function Settings() {
         <Card className="p-4">
           <div className="flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-jade-soft text-jade">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-iris-soft text-iris">
                 <Telescope size={18} />
               </span>
               <div className="min-w-0">
@@ -138,7 +138,7 @@ export default function Settings() {
               onClick={() => updateProfile({ autoSetAside: profile.autoSetAside === false })}
               aria-label="Toggle auto set-aside"
               className={`relative h-6 w-10 shrink-0 rounded-full transition ${
-                profile.autoSetAside === false ? "bg-line" : "bg-jade"
+                profile.autoSetAside === false ? "bg-line" : "bg-iris"
               }`}
             >
               <span
@@ -235,7 +235,7 @@ function OptionRow({ active, label, sub, onClick }) {
     <button
       onClick={onClick}
       className={`flex w-full items-center justify-between rounded-2xl border-2 px-4 py-3.5 text-left transition ${
-        active ? "border-jade bg-jade-soft" : "border-line bg-surface"
+        active ? "border-iris bg-iris-soft" : "border-line bg-surface"
       }`}
     >
       <span>
@@ -243,7 +243,7 @@ function OptionRow({ active, label, sub, onClick }) {
         {sub && <span className="block text-[13px] text-muted">{sub}</span>}
       </span>
       {active && (
-        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-jade">
+        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-iris">
           <Check size={14} className="text-white" strokeWidth={3} />
         </span>
       )}
@@ -299,7 +299,7 @@ function PaydaySheet({ open, onClose, value, onSave }) {
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
-          className="w-full rounded-2xl border-2 border-line bg-surface px-5 py-4 text-[17px] font-semibold outline-none focus:border-jade"
+          className="w-full rounded-2xl border-2 border-line bg-surface px-5 py-4 text-[17px] font-semibold outline-none focus:border-iris"
         />
         <p className="mt-3 px-1 text-[13px] text-muted">
           Changing this updates how your current cycle and daily allowance are calculated.
@@ -423,7 +423,7 @@ function AccountCard({ onToast }) {
         </p>
         <Card className="p-5">
           <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-jade-soft text-jade">
+            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-iris-soft text-iris">
               <Cloud size={18} />
             </span>
             <div className="flex-1">
@@ -455,7 +455,7 @@ function AccountCard({ onToast }) {
       </p>
       <Card className="p-5">
         <div className="flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-jade text-white">
+          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-iris text-white">
             <Cloud size={18} />
           </span>
           <div className="min-w-0 flex-1">

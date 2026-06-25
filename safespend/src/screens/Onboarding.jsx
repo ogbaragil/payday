@@ -44,8 +44,8 @@ export default function Onboarding() {
       {/* brand + progress */}
       <div className="flex items-center justify-between pt-6">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-ink">
-            <Check size={18} className="text-[#7fe3c2]" strokeWidth={3} />
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-iris">
+            <Check size={18} className="text-white" strokeWidth={3} />
           </div>
           <span className="font-display text-[17px] font-bold tracking-tight">SafeSpend</span>
         </div>
@@ -54,7 +54,7 @@ export default function Onboarding() {
             <span
               key={i}
               className={`h-1.5 rounded-full transition-all duration-300 ${
-                i === step ? "w-6 bg-jade" : i < step ? "w-1.5 bg-jade" : "w-1.5 bg-line"
+                i === step ? "w-6 bg-iris" : i < step ? "w-1.5 bg-iris" : "w-1.5 bg-line"
               }`}
             />
           ))}
@@ -76,7 +76,7 @@ export default function Onboarding() {
                   key={f.id}
                   onClick={() => set({ payFrequency: f.id })}
                   className={`flex w-full items-center justify-between rounded-3xl border-2 bg-surface px-5 py-4 text-left transition ${
-                    form.payFrequency === f.id ? "border-jade" : "border-transparent shadow-soft"
+                    form.payFrequency === f.id ? "border-iris" : "border-transparent shadow-soft"
                   }`}
                 >
                   <span>
@@ -85,7 +85,7 @@ export default function Onboarding() {
                   </span>
                   <span
                     className={`flex h-6 w-6 items-center justify-center rounded-full border-2 transition ${
-                      form.payFrequency === f.id ? "border-jade bg-jade" : "border-line"
+                      form.payFrequency === f.id ? "border-iris bg-iris" : "border-line"
                     }`}
                   >
                     {form.payFrequency === f.id && <Check size={14} className="text-white" strokeWidth={3} />}
@@ -110,7 +110,7 @@ export default function Onboarding() {
                 value={form.nextPayday}
                 min={toISODate(today())}
                 onChange={(e) => set({ nextPayday: e.target.value })}
-                className="w-full rounded-3xl border-2 border-line bg-surface px-5 py-5 text-[18px] font-semibold outline-none transition focus:border-jade"
+                className="w-full rounded-3xl border-2 border-line bg-surface px-5 py-5 text-[18px] font-semibold outline-none transition focus:border-iris"
               />
             </div>
           </>
@@ -124,7 +124,7 @@ export default function Onboarding() {
             <p className="mt-2 text-[15px] text-muted">
               Your typical take-home pay each cycle. You can fine-tune it any time.
             </p>
-            <div className="mt-7 rounded-3xl border-2 border-line bg-surface px-5 py-6 transition focus-within:border-jade">
+            <div className="mt-7 rounded-3xl border-2 border-line bg-surface px-5 py-6 transition focus-within:border-iris">
               <div className="flex items-center justify-center gap-1">
                 <span className="font-display text-3xl font-semibold text-muted">
                   {currencySymbol(form.currency)}
@@ -146,7 +146,7 @@ export default function Onboarding() {
                   onClick={() => set({ currency: c.code })}
                   className={`shrink-0 rounded-full border px-4 py-2 text-[13px] font-semibold transition ${
                     form.currency === c.code
-                      ? "border-jade bg-jade-soft text-jade"
+                      ? "border-iris bg-iris-soft text-iris"
                       : "border-line bg-surface text-muted"
                   }`}
                 >
@@ -162,7 +162,7 @@ export default function Onboarding() {
                 placeholder="First name — so we can say hi"
                 value={form.name}
                 onChange={(e) => set({ name: e.target.value })}
-                className="w-full rounded-2xl border-2 border-line bg-surface px-4 py-3.5 text-[15px] font-medium outline-none transition focus:border-jade"
+                className="w-full rounded-2xl border-2 border-line bg-surface px-4 py-3.5 text-[15px] font-medium outline-none transition focus:border-iris"
               />
             </div>
           </>
@@ -178,7 +178,7 @@ export default function Onboarding() {
           <>
             <button
               onClick={() => setShowImport(true)}
-              className="flex w-full items-center justify-center gap-1.5 py-2 text-center text-[14px] font-semibold text-jade transition hover:brightness-110"
+              className="flex w-full items-center justify-center gap-1.5 py-2 text-center text-[14px] font-semibold text-iris transition hover:brightness-110"
             >
               <Sparkles size={15} /> Already use Grow UP? Load your numbers
             </button>

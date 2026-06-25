@@ -149,7 +149,7 @@ export default function ExpenseSheet({ open, onClose, editing = null, defaultTyp
             placeholder="What's it for?"
             value={form.name}
             onChange={(e) => set({ name: e.target.value })}
-            className="w-full rounded-2xl border border-line bg-surface px-4 py-3.5 text-[15px] font-medium outline-none transition focus:border-jade"
+            className="w-full rounded-2xl border border-line bg-surface px-4 py-3.5 text-[15px] font-medium outline-none transition focus:border-iris"
           />
           {!editing && (
             <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto pb-1">
@@ -157,7 +157,7 @@ export default function ExpenseSheet({ open, onClose, editing = null, defaultTyp
                 <button
                   key={chip.name}
                   onClick={() => set({ name: chip.name, type: chip.type })}
-                  className="shrink-0 rounded-full border border-line bg-surface px-3.5 py-2 text-[13px] font-medium text-muted transition hover:border-jade hover:text-jade"
+                  className="shrink-0 rounded-full border border-line bg-surface px-3.5 py-2 text-[13px] font-medium text-muted transition hover:border-iris hover:text-iris"
                 >
                   {chip.name}
                 </button>
@@ -178,7 +178,7 @@ export default function ExpenseSheet({ open, onClose, editing = null, defaultTyp
                 onClick={() => set({ type: t.id })}
                 className={`rounded-2xl border px-2 py-3 text-center transition ${
                   form.type === t.id
-                    ? "border-jade bg-jade-soft text-jade"
+                    ? "border-iris bg-iris-soft text-iris"
                     : "border-line bg-surface text-muted hover:border-faint"
                 }`}
               >
@@ -198,7 +198,7 @@ export default function ExpenseSheet({ open, onClose, editing = null, defaultTyp
               type="date"
               value={form.dueDate}
               onChange={(e) => set({ dueDate: e.target.value })}
-              className="w-full rounded-2xl border border-line bg-surface px-3 py-3 text-[14px] font-medium outline-none focus:border-jade"
+              className="w-full rounded-2xl border border-line bg-surface px-3 py-3 text-[14px] font-medium outline-none focus:border-iris"
             />
           </div>
           <div>
@@ -208,19 +208,19 @@ export default function ExpenseSheet({ open, onClose, editing = null, defaultTyp
             <button
               onClick={toggleRecurring}
               className={`flex h-[46px] w-full items-center justify-between rounded-2xl border px-4 transition ${
-                form.recurring ? "border-jade bg-jade-soft" : "border-line bg-surface"
+                form.recurring ? "border-iris bg-iris-soft" : "border-line bg-surface"
               }`}
             >
               <span
                 className={`text-[14px] font-semibold ${
-                  form.recurring ? "text-jade" : "text-muted"
+                  form.recurring ? "text-iris" : "text-muted"
                 }`}
               >
                 {form.recurring ? "Each cycle" : "One-off"}
               </span>
               <span
                 className={`relative h-6 w-10 rounded-full transition ${
-                  form.recurring ? "bg-jade" : "bg-line"
+                  form.recurring ? "bg-iris" : "bg-line"
                 }`}
               >
                 <span
@@ -252,7 +252,7 @@ export default function ExpenseSheet({ open, onClose, editing = null, defaultTyp
                   }
                   className={`shrink-0 rounded-full border px-3.5 py-2 text-[13px] font-semibold transition ${
                     form.frequency === f.id
-                      ? "border-jade bg-jade-soft text-jade"
+                      ? "border-iris bg-iris-soft text-iris"
                       : "border-line bg-surface text-muted hover:border-faint"
                   }`}
                 >
@@ -290,7 +290,7 @@ export default function ExpenseSheet({ open, onClose, editing = null, defaultTyp
                 }
                 aria-label="Toggle smart set-aside"
                 className={`relative h-6 w-10 shrink-0 rounded-full transition ${
-                  form.fund?.enabled ? "bg-jade" : "bg-line"
+                  form.fund?.enabled ? "bg-iris" : "bg-line"
                 }`}
               >
                 <span

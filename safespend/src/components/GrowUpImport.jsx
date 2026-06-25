@@ -154,8 +154,8 @@ export default function GrowUpImport({ onClose }) {
         {/* header */}
         <div className="mb-5 flex items-start justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-jade-soft">
-              <Sparkles size={18} className="text-jade" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-iris-soft">
+              <Sparkles size={18} className="text-iris" />
             </div>
             <div>
               <h2 className="font-display text-[18px] font-extrabold leading-tight">
@@ -230,7 +230,7 @@ export default function GrowUpImport({ onClose }) {
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-2xl border-2 border-line bg-surface px-4 py-3.5 text-[16px] outline-none transition focus:border-jade"
+              className="w-full rounded-2xl border-2 border-line bg-surface px-4 py-3.5 text-[16px] outline-none transition focus:border-iris"
             />
             <input
               type="password"
@@ -238,7 +238,7 @@ export default function GrowUpImport({ onClose }) {
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-2xl border-2 border-line bg-surface px-4 py-3.5 text-[16px] outline-none transition focus:border-jade"
+              className="w-full rounded-2xl border-2 border-line bg-surface px-4 py-3.5 text-[16px] outline-none transition focus:border-iris"
             />
             <Button size="block" type="submit" disabled={busy || !email || !password}>
               {busy ? <Loader2 size={18} className="animate-spin" /> : <>Continue <ArrowRight size={18} /></>}
@@ -256,7 +256,7 @@ export default function GrowUpImport({ onClose }) {
         {/* loading */}
         {(phase === "loading" || phase === "loading-error") && (
           <div className="flex flex-col items-center gap-3 py-10">
-            <Loader2 size={26} className="animate-spin text-jade" />
+            <Loader2 size={26} className="animate-spin text-iris" />
             <p className="text-[14px] text-muted">Looking for your Grow UP data…</p>
             {phase === "loading-error" && (
               <Button size="block" variant="soft" onClick={() => user && loadFor(user.id)}>
@@ -287,7 +287,7 @@ export default function GrowUpImport({ onClose }) {
             <div className="rounded-2xl bg-surface p-4">
               <div className="flex items-center justify-between">
                 <span className="text-[13px] font-medium text-muted">Found in Grow UP</span>
-                <span className="flex items-center gap-1 text-[13px] font-semibold text-jade">
+                <span className="flex items-center gap-1 text-[13px] font-semibold text-iris">
                   <Check size={14} strokeWidth={3} /> Ready
                 </span>
               </div>
@@ -316,7 +316,7 @@ export default function GrowUpImport({ onClose }) {
                     onClick={() => setPayFrequency(f)}
                     className={`flex-1 rounded-2xl border-2 px-2 py-2.5 text-[13px] font-semibold transition ${
                       payFrequency === f
-                        ? "border-jade bg-jade-soft text-jade"
+                        ? "border-iris bg-iris-soft text-iris"
                         : "border-line bg-surface text-muted"
                     }`}
                   >
@@ -335,16 +335,16 @@ export default function GrowUpImport({ onClose }) {
                 value={nextPayday}
                 min={toISODate(today())}
                 onChange={(e) => setNextPayday(e.target.value)}
-                className="w-full rounded-2xl border-2 border-line bg-surface px-4 py-3 text-[15px] font-semibold outline-none transition focus:border-jade"
+                className="w-full rounded-2xl border-2 border-line bg-surface px-4 py-3 text-[15px] font-semibold outline-none transition focus:border-iris"
               />
             </div>
 
-            <div className="rounded-2xl border-2 border-jade/30 bg-jade-soft/40 p-4">
+            <div className="rounded-2xl border-2 border-iris/30 bg-iris-soft/40 p-4">
               <div className="flex items-baseline justify-between">
                 <span className="text-[13px] font-medium text-ink">
                   Your {FREQUENCY_LABELS[payFrequency].toLowerCase()} income
                 </span>
-                <span className="font-display text-[22px] font-extrabold text-jade tnum">
+                <span className="font-display text-[22px] font-extrabold text-iris tnum">
                   {formatMoneyRound(perCycleIncome, currency)}
                 </span>
               </div>
@@ -382,7 +382,7 @@ export default function GrowUpImport({ onClose }) {
                         <button
                           onClick={() => toggleFund(e.name)}
                           aria-label={`Toggle set-aside for ${e.name}`}
-                          className={`relative h-6 w-10 shrink-0 rounded-full transition ${on ? "bg-jade" : "bg-line"}`}
+                          className={`relative h-6 w-10 shrink-0 rounded-full transition ${on ? "bg-iris" : "bg-line"}`}
                         >
                           <span
                             className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${on ? "left-[18px]" : "left-0.5"}`}

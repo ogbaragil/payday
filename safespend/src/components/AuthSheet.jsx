@@ -120,7 +120,7 @@ export default function AuthSheet({ open, onClose, mode: initialMode = "signin" 
           <span className="h-px flex-1 bg-line" />
         </div>
 
-        <label className="flex items-center gap-3 rounded-2xl border border-line bg-surface px-4 py-3.5 focus-within:border-jade">
+        <label className="flex items-center gap-3 rounded-2xl border border-line bg-surface px-4 py-3.5 focus-within:border-iris">
           <Mail size={18} className="text-faint" />
           <input
             type="email"
@@ -133,7 +133,7 @@ export default function AuthSheet({ open, onClose, mode: initialMode = "signin" 
           />
         </label>
 
-        <label className="flex items-center gap-3 rounded-2xl border border-line bg-surface px-4 py-3.5 focus-within:border-jade">
+        <label className="flex items-center gap-3 rounded-2xl border border-line bg-surface px-4 py-3.5 focus-within:border-iris">
           <Lock size={18} className="text-faint" />
           <input
             type="password"
@@ -153,7 +153,7 @@ export default function AuthSheet({ open, onClose, mode: initialMode = "signin" 
           </div>
         )}
         {notice && (
-          <div className="rounded-2xl bg-jade-soft px-4 py-3 text-[14px] font-medium text-jade">
+          <div className="rounded-2xl bg-iris-soft px-4 py-3 text-[14px] font-medium text-iris">
             {notice}
           </div>
         )}
