@@ -221,7 +221,9 @@ export default function Plan() {
                   const isFunded =
                     Boolean(e.fund?.enabled) &&
                     ((Number(e.fund.accrued) || 0) > 0 || fundContribution(e, cycle, profile) > 0);
-                  const muted = !due && !isFunded;
+                  // Anything landing in a later cycle is greyed — including funded
+                  // (set-aside) items — so "this cycle" reads at a glance.
+                  const muted = !due;
                   // Due-date is the primary info. The per-cycle set-aside amount
                   // lives in the Set-aside progress card above, so rows just show
                   // a small "set aside" marker rather than repeating the figure.

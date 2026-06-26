@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, ArrowDownLeft, SlidersHorizontal, CheckCircle2, Star, ChevronRight, ShieldCheck } from "lucide-react";
+import { Plus, ArrowDownLeft, SlidersHorizontal, CheckCircle2, Star, ShieldCheck } from "lucide-react";
 import ExpenseSheet from "../components/ExpenseSheet.jsx";
 import { Card } from "../components/ui/Card.jsx";
 import ProgressRing from "../components/ui/ProgressRing.jsx";
@@ -30,7 +30,6 @@ export default function Timeline() {
   if (!cycle) return null;
   const todayISO = toISODate(today());
   const daysLeft = summary.daysLeft;
-  const daysSince = Math.max(0, daysBetween(cycle.startDate, today()));
   const pct = Math.round((summary.progress || 0) * 100);
   const dueToday = items.filter((e) => e.dueDate === todayISO && e.type !== "income");
   const allCovered = summary.safe >= 0;
@@ -42,8 +41,8 @@ export default function Timeline() {
         <p className="text-[14px] text-muted">What's coming up this pay cycle</p>
       </header>
 
-      {/* Hero */}
-      <div className="relative overflow-hidden chalk-card p-6 text-ink">
+      {/* Hero — cycle countdown + where this cycle's money sits */}
+      <div className="relative overflow-hidden chalk-card p-5 text-ink">
         <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full opacity-50 blur-3xl" style={{ background: "radial-gradient(circle, rgb(38 201 126 / 0.4) 0%, transparent 70%)" }} />
         <div className="relative flex items-center justify-between gap-4">
           <div>
@@ -51,25 +50,29 @@ export default function Timeline() {
             <p className="font-display text-[44px] font-extrabold leading-none tracking-tight tnum">{daysLeft}</p>
             <p className="mt-1 text-[13px] text-ink/55">{formatDate(cycle.nextPayday, { weekday: "short", day: "numeric", month: "short" })}</p>
           </div>
-          <div className="border-l border-ink/10 pl-4">
-            <p className="text-[13px] font-medium text-ink/60">Available today</p>
-            <p className={`font-display text-[26px] font-extrabold tnum ${summary.safe < 0 ? "text-clay" : "text-mint"}`}>
-              {formatMoney(summary.safe, currency, { cents: false })}
-            </p>
-            <p className="text-[12px] text-ink/45">safe to spend</p>
-          </div>
-          <ProgressRing value={summary.progress || 0} size={78} stroke={8} color="rgb(var(--mint))">
-            <span className="font-display text-[17px] font-extrabold text-ink tnum">{pct}%</span>
+          <ProgressRing value={summary.progress || 0} size={82} stroke={8} color="rgb(var(--mint))">
+            <span className="font-display text-[18px] font-extrabold text-ink tnum">{pct}%</span>
             <span className="text-[9px] text-ink/55">of cycle</span>
           </ProgressRing>
         </div>
-        <div className="relative mt-5">
-          <div className="h-2 w-full overflow-hidden rounded-full bg-ink/12">
-            <div className="h-full rounded-full bg-mint chalk-edge" style={{ width: `${Math.max(5, pct)}%` }} />
+        <div className="relative mt-4 grid grid-cols-3 border-t border-ink/10 pt-4 text-center">
+          <div>
+            <p className="text-[12px] text-ink/55">Available</p>
+            <p className={`font-display text-[19px] font-extrabold tnum ${summary.safe < 0 ? "text-clay" : "text-mint"}`}>
+              {formatMoney(summary.safe, currency, { cents: false })}
+            </p>
           </div>
-          <div className="mt-2 flex justify-between text-[12px] text-ink/55">
-            <span><span className="font-semibold text-ink/80 tnum">{daysSince}</span> days since payday</span>
-            <span className="tnum"><span className="font-semibold text-ink/80">{daysLeft}</span> days to payday</span>
+          <div className="border-x border-ink/10">
+            <p className="text-[12px] text-ink/55">Reserved</p>
+            <p className="font-display text-[19px] font-extrabold tnum text-amber">
+              {formatMoney(summary.setAside, currency, { cents: false })}
+            </p>
+          </div>
+          <div>
+            <p className="text-[12px] text-ink/55">Committed</p>
+            <p className="font-display text-[19px] font-extrabold tnum">
+              {formatMoney(summary.committed, currency, { cents: false })}
+            </p>
           </div>
         </div>
       </div>

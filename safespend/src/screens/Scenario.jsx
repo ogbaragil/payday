@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ShoppingBag, Check, CheckCircle2, Sparkles, X } from "lucide-react";
+import { ShoppingBag, Check, CheckCircle2, Sparkles, X, ChevronDown } from "lucide-react";
 import { Card } from "../components/ui/Card.jsx";
 import { useApp } from "../context/AppContext.jsx";
 import { cycleSummary } from "../lib/calculations.js";
@@ -8,6 +8,8 @@ import { planForwardCycles } from "../lib/planner.js";
 import { formatMoney, currencySymbol } from "../lib/format.js";
 
 const COST_CHIPS = [20, 50, 100, 200];
+const MORE_CHIPS = [300, 500, 1000, 2000];
+const chipLabel = (c) => (c >= 1000 ? `$${c / 1000}k` : `$${c}`);
 const TIMING = [
   { id: "today", label: "Today" },
   { id: "week", label: "This week" },
@@ -26,8 +28,9 @@ export default function Scenario() {
   const navigate = useNavigate();
   const [amount, setAmount] = useState("");
   const [name, setName] = useState("");
-  const [timing, setTiming] = useState("today");
+  const [timing, setTiming] = useState("payday");
   const [added, setAdded] = useState(false);
+  const [showMore, setShowMore] = useState(false);
 
   const summary = useMemo(() => cycleSummary(cycle, profile), [cycle, profile]);
   const nextSafe = useMemo(() => {
@@ -116,9 +119,21 @@ export default function Scenario() {
               ${c}
             </button>
           ))}
-          <button onClick={() => document.activeElement?.blur()}
-            className="rounded-xl border border-line bg-surface py-2.5 text-[13px] font-semibold text-muted">Other</button>
+          <button onClick={() => setShowMore((v) => !v)} aria-expanded={showMore}
+            className={`flex items-center justify-center gap-0.5 rounded-xl border py-2.5 text-[13px] font-semibold transition ${showMore || MORE_CHIPS.includes(Number(amount)) ? "border-iris bg-iris-soft text-iris" : "border-line bg-surface text-muted hover:border-faint"}`}>
+            Other <ChevronDown size={13} className={`transition-transform ${showMore ? "rotate-180" : ""}`} />
+          </button>
         </div>
+        {showMore && (
+          <div className="mt-2 grid grid-cols-4 gap-2">
+            {MORE_CHIPS.map((c) => (
+              <button key={c} onClick={() => setAmount(String(c))}
+                className={`rounded-xl border py-2.5 text-[14px] font-bold transition ${Number(amount) === c ? "border-iris bg-iris-soft text-iris" : "border-line bg-surface text-ink hover:border-faint"}`}>
+                {chipLabel(c)}
+              </button>
+            ))}
+          </div>
+        )}
       </Card>
 
       {/* Timing */}

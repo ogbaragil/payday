@@ -43,7 +43,19 @@ export default function Home() {
   const daysLeft = summary.daysLeft;
   const daysSince = Math.max(0, daysBetween(cycle.startDate, today()));
   const todayBills = upcoming.filter((e) => daysBetween(today(), e.dueDate) === 0 && e.type !== "income");
-  const nextItems = upcoming.filter((e) => daysBetween(today(), e.dueDate) > 0).slice(0, 2);
+  // `upcoming` is everything due before payday (sorted). Show the first few as
+  // full rows; surface the rest as a count so it never looks like only these
+  // are due before payday.
+  const MAX_UP_NEXT = 4;
+  const upNextRows = upcoming.slice(0, MAX_UP_NEXT).map((e) => {
+    const isToday = daysBetween(today(), e.dueDate) === 0;
+    return {
+      e,
+      when: isToday ? "Today" : formatDate(e.dueDate, { weekday: "short", day: "numeric", month: "short" }),
+      urgent: isToday,
+    };
+  });
+  const moreBeforePayday = upcoming.length - upNextRows.length;
   const spends = [...(cycle.spends || [])].reverse();
 
   return (
@@ -101,14 +113,13 @@ export default function Home() {
             </div>
 
             {todayBills.length > 0 && (
-              <p className="mt-2 font-display text-[19px] leading-tight">
+              <p className="mt-2 font-display text-[19px] leading-tight text-clay">
                 {todayBills.length} due today
-                <span className="block font-sans text-[13px] text-muted">{todayBills.map((b) => b.name).join(", ")}</span>
               </p>
             )}
 
             <div className="mt-2 space-y-0.5">
-              {nextItems.map((e) => {
+              {upNextRows.map(({ e, when, urgent }) => {
                 const { Icon, tint } = typeMeta(e.type);
                 const isIncome = e.type === "income";
                 return (
@@ -118,7 +129,7 @@ export default function Home() {
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-[15px]">{e.name}</span>
-                      <span className="block text-[12px] text-muted">{formatDate(e.dueDate, { weekday: "short", day: "numeric", month: "short" })}</span>
+                      <span className={`block text-[12px] ${urgent ? "font-semibold text-clay" : "text-muted"}`}>{when}</span>
                     </span>
                     <span className={`text-[15px] tnum ${isIncome ? "text-jade" : "text-ink"}`}>
                       {isIncome ? "+" : "−"}{formatMoney(e.amount, currency, { cents: false })}
@@ -126,6 +137,12 @@ export default function Home() {
                   </div>
                 );
               })}
+
+              {moreBeforePayday > 0 && (
+                <p className="py-1 pl-11 text-[13px] text-iris">
+                  +{moreBeforePayday} more before payday
+                </p>
+              )}
 
               <div className="flex items-center gap-3 py-1">
                 <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-mint-soft text-jade">
@@ -139,7 +156,7 @@ export default function Home() {
               </div>
             </div>
 
-            {todayBills.length === 0 && nextItems.length === 0 && (
+            {upNextRows.length === 0 && (
               <p className="mt-2 text-[13px] text-muted">Nothing due before payday — you're all clear.</p>
             )}
           </Card>
