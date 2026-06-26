@@ -8,6 +8,15 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="SafeSpend" />
+    <script>
+      // Set the theme before paint so there's no flash. Defaults to dark (the blackboard).
+      try {
+        document.documentElement.dataset.theme =
+          localStorage.getItem("safespend-theme") || "dark";
+      } catch (e) {
+        document.documentElement.dataset.theme = "dark";
+      }
+    </script>
     <meta name="description" content="Plan each pay cycle and know how much you can safely spend before your next payday." />
     <link rel="apple-touch-icon" href="/icons/icon-192.png" />
 
