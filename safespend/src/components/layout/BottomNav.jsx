@@ -30,12 +30,16 @@ export default function BottomNav() {
                     className={`chalk-edge flex h-14 w-14 items-center justify-center rounded-full border-[1.8px] transition-all duration-200 ${
                       isActive
                         ? "border-iris bg-iris-soft text-iris"
-                        : "border-iris/70 bg-iris-soft/60 text-iris group-hover:bg-iris-soft"
+                        : "border-line/70 bg-elevated/80 text-faint group-hover:text-muted group-active:border-iris/70 group-active:bg-iris-soft/60 group-active:text-iris"
                     }`}
                   >
                     <Icon size={24} strokeWidth={2.2} />
                   </span>
-                  <span className="font-display text-[14px] leading-none tracking-tight text-iris">
+                  <span
+                    className={`font-display text-[14px] leading-none tracking-tight transition-colors ${
+                      isActive ? "text-iris" : "text-faint group-active:text-iris"
+                    }`}
+                  >
                     {label}
                   </span>
                 </>
