@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Trash2, PiggyBank } from "lucide-react";
 import Sheet from "./ui/Sheet.jsx";
 import Button from "./ui/Button.jsx";
-import { EXPENSE_TYPES, rawFundContribution, cyclesUntilDue } from "../lib/calculations.js";
+import { EXPENSE_TYPES, fundNeed, cyclesUntilDue } from "../lib/calculations.js";
 import { EXAMPLE_CHIPS } from "../lib/demoData.js";
 import { currencySymbol, toISODate, today, formatMoney } from "../lib/format.js";
 import { useApp } from "../context/AppContext.jsx";
@@ -63,15 +63,17 @@ export default function ExpenseSheet({ open, onClose, editing = null, defaultTyp
     (!form.recurring || ["quarterly", "yearly"].includes(form.frequency));
 
   const setAsidePreview = fundEligible
-    ? rawFundContribution(
+    ? fundNeed(
         {
           amount: Number(form.amount) || 0,
           dueDate: form.dueDate,
+          recurring: form.recurring,
+          frequency: form.frequency,
           fund: { enabled: true, accrued: Number(form.fund?.accrued) || 0 },
         },
         cycle,
         profile
-      )
+      ).perCycle
     : 0;
 
   const save = async () => {
@@ -275,8 +277,10 @@ export default function ExpenseSheet({ open, onClose, editing = null, defaultTyp
                   <p className="text-[14px] font-semibold">Smart set-aside</p>
                   <p className="text-[12px] text-muted">
                     {form.fund?.enabled
-                      ? `Saving ${formatMoney(setAsidePreview, currency, { cents: false })}/cycle so it's covered when due.`
-                      : "Set aside a little each cycle so this big bill is covered."}
+                      ? setAsidePreview > 0
+                        ? `Saving ${formatMoney(setAsidePreview, currency, { cents: false })}/cycle so it's covered when due.`
+                        : "Your pay that cycle already covers this — nothing to set aside for now."
+                      : "Reserve only in cycles that would fall short, so a big bill is always covered."}
                   </p>
                 </div>
               </div>

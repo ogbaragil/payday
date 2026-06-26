@@ -41,8 +41,13 @@ export default function Plan() {
     return m;
   }, [cycle]);
   const funded = useMemo(
-    () => (cycle?.expenses || []).filter((e) => e.fund?.enabled),
-    [cycle]
+    () =>
+      (cycle?.expenses || []).filter(
+        (e) =>
+          e.fund?.enabled &&
+          ((Number(e.fund.accrued) || 0) > 0 || fundContribution(e, cycle, profile) > 0)
+      ),
+    [cycle, profile]
   );
 
   if (!cycle) return null;
@@ -213,7 +218,9 @@ export default function Plan() {
               <Card className="divide-y divide-line/60 p-1">
                 {items.map((e) => {
                   const due = isDueInCycle(e, cycle);
-                  const isFunded = Boolean(e.fund?.enabled);
+                  const isFunded =
+                    Boolean(e.fund?.enabled) &&
+                    ((Number(e.fund.accrued) || 0) > 0 || fundContribution(e, cycle, profile) > 0);
                   const muted = !due && !isFunded;
                   // Due-date is the primary info. The per-cycle set-aside amount
                   // lives in the Set-aside progress card above, so rows just show

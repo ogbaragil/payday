@@ -178,61 +178,78 @@ export function smoothingHold(cycle, profile) {
   return Math.min(net0, -minFuture);
 }
 
-// The cycle-wide set-aside plan, per funded upcoming expense.
-//  • Baseline: each fund's steady-state slice (gentle, spread over time).
-//  • Collision buffer: if a future cycle would run short, set aside EXTRA now —
-//    routed to the soonest-due items first — to pre-build a buffer in the spare
-//    cycles before it (e.g. keep slices in July to cover an August clash).
-//  • Cap: never reserve more than is free this cycle, so it can't overdraw you.
+// What a single funded FUTURE expense genuinely needs set aside. A bill only
+// needs pre-funding to the extent the cycle it's DUE in can't cover it from
+// that cycle's OWN income (after that cycle's other committed bills). Whatever
+// its own payday covers is left alone — so an affordable bill reserves nothing.
+// Any real gap is spread evenly over the cycles leading up to it.
+export function fundNeed(expense, cycle, profile) {
+  const zero = { due: 1, target: 0, remaining: 0, perCycle: 0 };
+  if (!expense?.fund?.enabled || !profile?.payFrequency) return zero;
+  const amount = Number(expense.amount) || 0;
+  const accrued = Number(expense.fund.accrued) || 0;
+  const due = cyclesUntilDue(expense.dueDate, cycle, profile.payFrequency);
+  if (due <= 1) return { ...zero, due }; // due this cycle → a bill, not a set-aside
+
+  const pay = profile.payFrequency;
+  const typical = Number(profile.typicalIncome) || Number(cycle.income) || 0;
+  const wins = projWindows(cycle, pay, due);
+  const w = wins[due - 1]; // the future window this expense lands in
+  // Other committed bills landing in that same window eat into what its own
+  // payday can put toward this bill.
+  let others = 0;
+  for (const x of cycle.expenses || []) {
+    if (x.id === expense.id || !COMMITTED_TYPES.includes(x.type)) continue;
+    for (const _ of projOcc(x, pay, w.start, w.end)) others += Number(x.amount) || 0;
+  }
+  const capacity = Math.max(0, typical - others); // that payday's room for this bill
+  const target = Math.max(0, amount - capacity);  // the part that must be pre-funded
+  const remaining = Math.max(0, target - accrued);
+  const perCycle = remaining / Math.max(1, due - 1); // spread over the lead-up cycles
+  return { due, target, remaining, perCycle };
+}
+
+// The cycle-wide set-aside plan. Set-asides only kick in for a funded bill when
+// the cycle it's due in can't cover it on its own — and only by that shortfall,
+// spread over the lead-up cycles. Affordable bills reserve nothing. Capped at
+// this cycle's free cash so it can never overdraw you.
 const _planCache = new WeakMap();
 export function fundPlan(cycle, profile) {
-  if (!cycle?.expenses || !profile) return { alloc: new Map(), total: 0, leftover: 0, hold: 0 };
+  if (!cycle?.expenses || !profile) return { alloc: new Map(), total: 0, leftover: 0, want: 0 };
   const cached = _planCache.get(cycle);
   if (cached && cached.profile === profile) return cached.plan;
 
-  const funded = cycle.expenses.filter((e) => e?.fund?.enabled && !isDueInCycle(e, cycle));
-  const items = funded
-    .map((e) => ({
-      id: e.id,
-      raw: rawFundContribution(e, cycle, profile),
-      remaining: Math.max(0, (Number(e.amount) || 0) - (Number(e.fund.accrued) || 0)),
-      due: cyclesUntilDue(e.dueDate, cycle, profile.payFrequency),
-    }))
-    .filter((it) => it.remaining > 0);
+  const items = cycle.expenses
+    .filter((e) => e?.fund?.enabled && !isDueInCycle(e, cycle))
+    .map((e) => {
+      const n = fundNeed(e, cycle, profile);
+      return { id: e.id, perCycle: n.perCycle, remaining: n.remaining };
+    })
+    .filter((it) => it.perCycle > 0 && it.remaining > 0);
 
-  const rawTotal = items.reduce((s, it) => s + it.raw, 0);
+  const want = items.reduce((s, it) => s + it.perCycle, 0);
   const leftover = Math.max(0, totalIncome(cycle) - committedTotal(cycle, profile));
-  const hold = smoothingHold(cycle, profile);
-  const target = Math.min(leftover, Math.max(rawTotal, hold));
+  const target = Math.min(leftover, want);
+  const scale = want > 0 ? target / want : 0;
 
   const alloc = new Map();
-  // Pass 1 — steady-state baseline (scaled down if even that won't fit).
-  const base = Math.min(target, rawTotal);
-  const scale = rawTotal > 0 ? base / rawTotal : 0;
-  for (const it of items) alloc.set(it.id, it.raw * scale);
-  // Pass 2 — collision buffer: route the extra to the soonest-due items first.
-  let extra = target - base;
-  if (extra > 0) {
-    const bySoonest = [...items].sort((a, b) => a.due - b.due || b.remaining - a.remaining);
-    for (const it of bySoonest) {
-      if (extra <= 0) break;
-      const room = it.remaining - (alloc.get(it.id) || 0);
-      const add = Math.min(extra, Math.max(0, room));
-      alloc.set(it.id, (alloc.get(it.id) || 0) + add);
-      extra -= add;
+  let total = 0;
+  for (const it of items) {
+    const v = Math.min(it.remaining, it.perCycle * scale);
+    if (v > 0) {
+      alloc.set(it.id, v);
+      total += v;
     }
   }
-  let total = 0;
-  for (const v of alloc.values()) total += v;
 
-  const plan = { alloc, total, leftover, rawTotal, hold };
+  const plan = { alloc, total, leftover, want };
   _planCache.set(cycle, { profile, plan });
   return plan;
 }
 
 // Effective per-cycle set-aside for one funded expense (after the cap above).
 // Only meaningful for expenses that belong to `cycle`; for a standalone estimate
-// in the editor, use rawFundContribution instead.
+// in the editor, use fundNeed instead.
 export function fundContribution(expense, cycle, profile) {
   if (!expense?.fund?.enabled || isDueInCycle(expense, cycle)) return 0;
   return fundPlan(cycle, profile).alloc.get(expense.id) || 0;

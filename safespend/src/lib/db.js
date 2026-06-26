@@ -112,6 +112,15 @@ export function nextPaydayFrom(date, frequency) {
   return addMonths(date, 1);
 }
 
+// The payday that STARTED the cycle ending on `date` — one pay interval back.
+// Used to anchor the very first cycle to the real fortnight, not the day the
+// user happened to onboard.
+export function previousPaydayFrom(date, frequency) {
+  if (frequency === "weekly") return addDays(date, -7);
+  if (frequency === "fortnightly") return addDays(date, -14);
+  return addMonths(date, -1);
+}
+
 // Advance any recurring expense whose due date has slipped into a PAST cycle to
 // its next occurrence on/after the current cycle's start. A monthly bill dated
 // 19 Jun, viewed in a late-June cycle, becomes 19 Jul — so it's counted in the
@@ -119,8 +128,15 @@ export function nextPaydayFrom(date, frequency) {
 // One-offs are left alone: a passed one-off is genuinely overdue, not recurring.
 export function normalizeCycle(cycle, profile) {
   if (!cycle?.expenses || !profile?.payFrequency) return cycle;
-  const start = startOfDay(cycle.startDate);
-  let changed = false;
+  // Snap the cycle's start to the real previous payday (one interval before the
+  // next one). For cycles built by buildNextCycle this is already true, so it's
+  // a no-op; it only heals a first cycle that was anchored to the onboarding day.
+  const anchored = cycle.nextPayday
+    ? toISODate(previousPaydayFrom(new Date(cycle.nextPayday), profile.payFrequency))
+    : cycle.startDate;
+  const startChanged = anchored !== cycle.startDate;
+  const start = startOfDay(anchored);
+  let changed = startChanged;
   const expenses = cycle.expenses.map((e) => {
     if (!e.recurring || !e.dueDate) return e;
     let due = startOfDay(e.dueDate);
@@ -134,7 +150,7 @@ export function normalizeCycle(cycle, profile) {
     changed = true;
     return { ...e, dueDate: toISODate(due) };
   });
-  return changed ? { ...cycle, expenses } : cycle;
+  return changed ? { ...cycle, startDate: anchored, expenses } : cycle;
 }
 
 export function buildNextCycle(profile, previousCycle, overrides = {}) {

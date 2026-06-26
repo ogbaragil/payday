@@ -9,7 +9,7 @@ import {
   toPayCycle,
   cycleFraction,
 } from "../lib/growupImport.js";
-import { rawFundContribution } from "../lib/calculations.js";
+import { fundNeed } from "../lib/calculations.js";
 import {
   FREQUENCY_LABELS,
   currencySymbol,
@@ -50,13 +50,19 @@ export default function GrowUpImport({ onClose }) {
     [plan]
   );
   const provisionalCycle = useMemo(
-    () => ({ startDate: toISODate(today()), nextPayday }),
-    [nextPayday]
+    () => ({
+      startDate: toISODate(today()),
+      nextPayday,
+      income: plan?.income || 0,
+      expenses: plan?.expenses || [],
+    }),
+    [nextPayday, plan]
   );
   const setAsidePreview = (e) =>
-    rawFundContribution({ ...e, fund: { enabled: true, accrued: 0 } }, provisionalCycle, {
+    fundNeed({ ...e, fund: { enabled: true, accrued: 0 } }, provisionalCycle, {
       payFrequency,
-    });
+      typicalIncome: plan?.income || 0,
+    }).perCycle;
   const toggleFund = (name) => setFundOff((m) => ({ ...m, [name]: !m[name] }));
 
   // Pull the snapshot once we have a session.
@@ -376,7 +382,7 @@ export default function GrowUpImport({ onClose }) {
                           <p className="truncate text-[14px] font-semibold">{e.name}</p>
                           <p className="text-[12px] text-muted">
                             {formatMoney(e.amount, currency, { cents: false })} ·{" "}
-                            {on ? `${formatMoney(perCycle, currency, { cents: false })}/cycle` : "not set aside"}
+                            {on ? (perCycle > 0 ? `${formatMoney(perCycle, currency, { cents: false })}/cycle` : "covered by your pay") : "not set aside"}
                           </p>
                         </div>
                         <button

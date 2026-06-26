@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, useCallback } from "react";
 import * as db from "../lib/db.js";
+import { toISODate } from "../lib/format.js";
 import { buildDemoCycle, buildDemoProfile, makeExpense } from "../lib/demoData.js";
 import { reconcileAutoFunds } from "../lib/planner.js";
 
@@ -53,10 +54,12 @@ export function AppProvider({ children }) {
       typicalIncome: Number(form.typicalIncome) || 0,
       autoSetAside: form.autoSetAside !== false, // forward-look auto set-aside, on by default
     };
-    // Spin up the user's first real cycle from their answers.
+    // Spin up the user's first real cycle from their answers. Anchor its start
+    // to the previous payday (one pay interval before the next one) so "days
+    // since payday" lines up with the real fortnight — not the onboarding day.
     const firstCycle = {
       id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + 1),
-      startDate: new Date().toISOString().slice(0, 10),
+      startDate: toISODate(db.previousPaydayFrom(new Date(form.nextPayday), form.payFrequency)),
       nextPayday: form.nextPayday,
       income: Number(form.typicalIncome) || 0,
       expenses: Array.isArray(form.expenses) ? form.expenses : [],
