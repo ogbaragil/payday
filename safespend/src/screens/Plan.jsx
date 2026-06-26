@@ -217,7 +217,9 @@ export default function Plan() {
           (s, e) => s + (e.fund?.enabled ? fundCoverage(e).shortfall : Number(e.amount) || 0), 0
         );
         const categoryTotal = items.reduce((s, e) => s + (Number(e.amount) || 0), 0);
-        const share = planned > 0 ? Math.min(1, subtotal / planned) : 0;
+        // Fill = what's due this cycle vs the category's own total (matches the
+        // "$X of $Y due this cycle" tagline), not a share of the whole plan.
+        const share = categoryTotal > 0 ? Math.min(1, subtotal / categoryTotal) : 0;
         const meta = TYPE_META[g.type];
         const open = isOpen(g.type);
         const tagline =

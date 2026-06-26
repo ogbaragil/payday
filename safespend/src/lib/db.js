@@ -10,7 +10,7 @@
 // ---------------------------------------------------------------------------
 
 import { uid, makeExpense } from "./demoData.js";
-import { addDays, addMonths, addByFrequency, startOfDay, toISODate, today } from "./format.js";
+import { addDays, addMonths, addByFrequency, subByFrequency, startOfDay, toISODate, today } from "./format.js";
 import { fundContribution } from "./calculations.js";
 
 const KEYS = {
@@ -136,19 +136,42 @@ export function normalizeCycle(cycle, profile) {
     : cycle.startDate;
   const startChanged = anchored !== cycle.startDate;
   const start = startOfDay(anchored);
+  const end = cycle.nextPayday ? startOfDay(cycle.nextPayday) : null;
   let changed = startChanged;
   const expenses = cycle.expenses.map((e) => {
     if (!e.recurring || !e.dueDate) return e;
-    let due = startOfDay(e.dueDate);
-    if (due >= start) return e;
     const freq = e.frequency || profile.payFrequency;
-    let guard = 0;
-    while (startOfDay(due) < start && guard < 600) {
-      due = addByFrequency(due, freq);
-      guard += 1;
+    let due = startOfDay(e.dueDate);
+
+    // (a) Slipped into a PAST cycle → advance forward to the current window so
+    // the occurrence is counted in the cycle it now lands in.
+    if (due < start) {
+      let guard = 0;
+      while (startOfDay(due) < start && guard < 600) {
+        due = addByFrequency(due, freq);
+        guard += 1;
+      }
+      changed = true;
+      return { ...e, dueDate: toISODate(due) };
     }
-    changed = true;
-    return { ...e, dueDate: toISODate(due) };
+
+    // (b) Anchored to a FUTURE cycle, but a prior occurrence falls inside THIS
+    // cycle (e.g. a monthly bill entered as 25 Jul that also fell due 25 Jun
+    // this cycle). Pull it back so it's shown and counted where it belongs.
+    if (end && due >= end) {
+      let d = due;
+      let guard = 0;
+      while (startOfDay(d) >= end && guard < 600) {
+        d = subByFrequency(d, freq);
+        guard += 1;
+      }
+      if (startOfDay(d) >= start) {
+        changed = true;
+        return { ...e, dueDate: toISODate(d) };
+      }
+    }
+
+    return e;
   });
   return changed ? { ...cycle, startDate: anchored, expenses } : cycle;
 }

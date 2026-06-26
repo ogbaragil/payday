@@ -90,6 +90,18 @@ export function addByFrequency(date, frequency) {
   }
 }
 
+// Step a date BACK one occurrence of the given frequency (mirror of addByFrequency).
+export function subByFrequency(date, frequency) {
+  switch (frequency) {
+    case "weekly":      return addDays(date, -7);
+    case "fortnightly": return addDays(date, -14);
+    case "monthly":     return addMonths(date, -1);
+    case "quarterly":   return addMonths(date, -3);
+    case "yearly":      return addMonths(date, -12);
+    default:            return addMonths(date, -1);
+  }
+}
+
 export function formatDate(date, opts = { weekday: "short", day: "numeric", month: "short" }) {
   return new Intl.DateTimeFormat("en-AU", opts).format(new Date(date));
 }
