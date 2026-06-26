@@ -5,7 +5,7 @@ import ExpenseSheet from "../components/ExpenseSheet.jsx";
 import { Card } from "../components/ui/Card.jsx";
 import ProgressRing from "../components/ui/ProgressRing.jsx";
 import { useApp } from "../context/AppContext.jsx";
-import { upcomingExpenses, COMMITTED_TYPES, fundCoverage, cycleSummary } from "../lib/calculations.js";
+import { upcomingExpenses, pastExpenses, cycleSummary } from "../lib/calculations.js";
 import { typeMeta } from "../lib/typeMeta.js";
 import { formatMoney, formatDate, relativeDay, toISODate, today, daysBetween } from "../lib/format.js";
 
@@ -26,6 +26,12 @@ export default function Timeline() {
 
   const summary = useMemo(() => cycleSummary(cycle, profile), [cycle, profile]);
   const items = useMemo(() => (cycle ? upcomingExpenses(cycle) : []), [cycle]);
+  const past = useMemo(() => (cycle ? pastExpenses(cycle) : []), [cycle]);
+  // The whole cycle on one thread: what's already passed (done), then what's ahead.
+  const timelineRows = useMemo(
+    () => [...past.map((e) => ({ e, done: true })), ...items.map((e) => ({ e, done: false }))],
+    [past, items]
+  );
 
   if (!cycle) return null;
   const todayISO = toISODate(today());
@@ -78,7 +84,7 @@ export default function Timeline() {
       </div>
 
       <div className="flex items-center justify-between px-1">
-        <h2 className="font-display text-[20px] font-bold">Upcoming bills & events</h2>
+        <h2 className="font-display text-[20px] font-bold">This pay cycle</h2>
       </div>
 
       {/* Today status */}
@@ -90,25 +96,31 @@ export default function Timeline() {
         </div>
       </div>
 
-      {/* The connected timeline — a chalk line threading the day's events */}
-      {items.length > 0 && (
+      {/* The connected timeline — the whole cycle on one chalk thread */}
+      {(timelineRows.length > 0 || cycle) && (
         <div className="relative pl-1">
           {/* the vertical chalk thread */}
           <div className="pointer-events-none absolute bottom-3 left-[26px] top-3 w-px bg-line/60 chalk-edge" />
           <div className="space-y-1">
-            {items.map((e) => {
+            {timelineRows.map(({ e, done }) => {
               const { Icon, label } = typeMeta(e.type);
-              const accent =
-                e.type === "income" ? "text-jade border-jade/60"
+              const accent = done
+                ? "text-faint border-line/60"
+                : e.type === "income" ? "text-jade border-jade/60"
                 : e.type === "saving" ? "text-amber border-amber/60"
                 : e.type === "spending" ? "text-blue border-blue/60"
                 : e.type === "debt" ? "text-clay border-clay/60"
                 : "text-iris border-iris/60";
               const isIncome = e.type === "income";
               const dd = daysBetween(today(), e.dueDate);
-              const dueText = dd <= 0 ? "Today" : dd === 1 ? "Tomorrow" : `In ${dd} days`;
+              const whenText =
+                dd < -1 ? `${-dd} days ago`
+                : dd === -1 ? "Yesterday"
+                : dd === 0 ? "Today"
+                : dd === 1 ? "Tomorrow"
+                : `In ${dd} days`;
               return (
-                <button key={e.id} onClick={() => setEditing(e)} className="relative flex w-full items-center gap-3 py-2.5 text-left">
+                <button key={e.id} onClick={() => setEditing(e)} className={`relative flex w-full items-center gap-3 py-2.5 text-left ${done ? "opacity-55" : ""}`}>
                   <span className={`relative z-10 flex h-[50px] w-[50px] shrink-0 items-center justify-center rounded-full border-[1.6px] bg-bg chalk-edge ${accent}`}>
                     <Icon size={20} />
                   </span>
@@ -117,10 +129,10 @@ export default function Timeline() {
                     <span className="block text-[14px] text-muted">{label}</span>
                   </span>
                   <span className="text-right">
-                    <span className={`block font-display text-[19px] leading-tight tnum ${isIncome ? "text-jade" : "text-ink"}`}>
+                    <span className={`block font-display text-[19px] leading-tight tnum ${done ? "text-muted" : isIncome ? "text-jade" : "text-ink"}`}>
                       {isIncome ? "+" : "−"}{formatMoney(e.amount, currency, { cents: false })}
                     </span>
-                    <span className="block text-[13px] text-muted">{dueText}</span>
+                    <span className="block text-[13px] text-muted">{whenText}</span>
                   </span>
                 </button>
               );

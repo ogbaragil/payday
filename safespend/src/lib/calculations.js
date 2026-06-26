@@ -402,3 +402,20 @@ export function upcomingExpenses(cycle, ref = today()) {
     })
     .sort((a, b) => startOfDay(a.dueDate) - startOfDay(b.dueDate));
 }
+
+// Items that already came due earlier in THIS cycle (start ≤ due < today). The
+// counterpart to upcomingExpenses, so the Timeline can show the whole cycle.
+export function pastExpenses(cycle, ref = today()) {
+  if (!cycle?.expenses) return [];
+  const start = cycle?.startDate ? startOfDay(cycle.startDate) : null;
+  const to = startOfDay(ref);
+  return [...cycle.expenses]
+    .filter((e) => e.dueDate)
+    .filter((e) => {
+      const due = startOfDay(e.dueDate);
+      if (start && due < start) return false;
+      if (due >= to) return false;
+      return true;
+    })
+    .sort((a, b) => startOfDay(a.dueDate) - startOfDay(b.dueDate));
+}

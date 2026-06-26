@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Plus, Pencil, Target, PiggyBank } from "lucide-react";
+import { Plus, Pencil, Target, PiggyBank, ChevronDown } from "lucide-react";
 import ExpenseSheet from "../components/ExpenseSheet.jsx";
 import { Card } from "../components/ui/Card.jsx";
 import ProgressRing from "../components/ui/ProgressRing.jsx";
@@ -32,6 +32,15 @@ export default function Plan() {
   const [addType, setAddType] = useState(null);
   const [editingIncome, setEditingIncome] = useState(false);
   const [incomeDraft, setIncomeDraft] = useState("");
+  // Sections collapse by default; an empty Set means everything is collapsed.
+  const [openSections, setOpenSections] = useState(() => new Set());
+  const isOpen = (key) => openSections.has(key);
+  const toggleSection = (key) =>
+    setOpenSections((prev) => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
 
   const summary = useMemo(() => cycleSummary(cycle, profile), [cycle, profile]);
   const byType = useMemo(() => {
@@ -54,6 +63,23 @@ export default function Plan() {
 
   const planned = summary.committed + summary.setAside;
   const plannedPct = summary.income > 0 ? planned / summary.income : 0;
+
+  // One-line summary for the collapsed Set-aside card.
+  const fundedTotals = funded.reduce(
+    (acc, e) => {
+      const amount = Number(e.amount) || 0;
+      const reserved = Math.min(amount, (Number(e.fund.accrued) || 0) + fundContribution(e, cycle, profile));
+      return { reserved: acc.reserved + reserved, goal: acc.goal + amount };
+    },
+    { reserved: 0, goal: 0 }
+  );
+  const fundedNames =
+    funded.length === 1
+      ? funded[0].name
+      : funded.length === 2
+      ? `${funded[0].name} & ${funded[1].name}`
+      : `${funded.length} future bills`;
+  const setAsideSummary = `${formatMoney(fundedTotals.reserved, currency, { cents: false })} of ${formatMoney(fundedTotals.goal, currency, { cents: false })} reserved for ${fundedNames}`;
 
   const saveIncome = async () => {
     await setIncome(Number(incomeDraft) || 0);
@@ -141,44 +167,46 @@ export default function Plan() {
         )}
       </Card>
 
-      {/* Set-aside goals */}
+      {/* Set-aside goals — collapsed by default with a one-line summary */}
       {funded.length > 0 && (
-        <section>
-          <div className="mb-2 flex items-center gap-2 px-1">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-soft text-amber"><Target size={15} /></span>
-            <h2 className="font-display text-[20px] font-bold">Set-aside progress</h2>
-          </div>
-          <Card className="space-y-4 p-4">
-            {funded.map((e) => {
-              const accrued = Number(e.fund.accrued) || 0;
-              const amount = Number(e.amount) || 0;
-              const per = fundContribution(e, cycle, profile);
-              // Optimistic progress: count what's banked PLUS what this cycle is
-              // already reserving (capped at the goal). The set-aside lowers
-              // safe-to-spend now, so it should show on the bar now — it only
-              // banks into `accrued` at the next payday rollover.
-              const reserved = Math.min(amount, accrued + per);
-              const pct = amount > 0 ? Math.min(1, reserved / amount) : 0;
-              const justReserved = per > 0 && accrued <= 0;
-              return (
-                <div key={e.id}>
-                  <div className="flex items-baseline justify-between">
-                    <span className="text-[15px]">{e.name}</span>
-                    <span className="text-[14px] text-muted tnum">
-                      {formatMoney(reserved, currency, { cents: false })} / {formatMoney(amount, currency, { cents: false })}
-                    </span>
+        <Card className="overflow-hidden">
+          <button onClick={() => toggleSection("setaside")} className="flex w-full items-center gap-3 p-4 text-left transition active:bg-elevated">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-soft text-amber"><Target size={17} /></span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-display text-[18px] font-bold leading-tight">Set-aside progress</span>
+              <span className="block text-[13px] text-muted tnum">{setAsideSummary}</span>
+            </span>
+            <ChevronDown size={18} className={`shrink-0 text-muted transition-transform ${isOpen("setaside") ? "rotate-180" : ""}`} />
+          </button>
+          {isOpen("setaside") && (
+            <div className="space-y-4 border-t border-line/60 p-4">
+              {funded.map((e) => {
+                const accrued = Number(e.fund.accrued) || 0;
+                const amount = Number(e.amount) || 0;
+                const per = fundContribution(e, cycle, profile);
+                const reserved = Math.min(amount, accrued + per);
+                const pct = amount > 0 ? Math.min(1, reserved / amount) : 0;
+                const justReserved = per > 0 && accrued <= 0;
+                return (
+                  <div key={e.id}>
+                    <div className="flex items-baseline justify-between">
+                      <span className="text-[15px]">{e.name}</span>
+                      <span className="text-[14px] text-muted tnum">
+                        {formatMoney(reserved, currency, { cents: false })} / {formatMoney(amount, currency, { cents: false })}
+                      </span>
+                    </div>
+                    <div className="mt-1.5 h-2.5 w-full overflow-hidden rounded-full bg-elevated">
+                      <div className="h-full rounded-full bg-amber chalk-edge transition-[width] duration-500" style={{ width: `${Math.max(3, pct * 100)}%` }} />
+                    </div>
+                    <p className="mt-1 text-[13px] text-faint tnum">
+                      {Math.round(pct * 100)}%{justReserved ? " reserved" : ""} · setting aside {formatMoney(per, currency, { cents: false })}/cycle
+                    </p>
                   </div>
-                  <div className="mt-1.5 h-2.5 w-full overflow-hidden rounded-full bg-elevated">
-                    <div className="h-full rounded-full bg-amber chalk-edge transition-[width] duration-500" style={{ width: `${Math.max(3, pct * 100)}%` }} />
-                  </div>
-                  <p className="mt-1 text-[13px] text-faint tnum">
-                    {Math.round(pct * 100)}%{justReserved ? " reserved" : ""} · setting aside {formatMoney(per, currency, { cents: false })}/cycle
-                  </p>
-                </div>
-              );
-            })}
-          </Card>
-        </section>
+                );
+              })}
+            </div>
+          )}
+        </Card>
       )}
 
       {/* Grouped editable lists */}
@@ -188,22 +216,36 @@ export default function Plan() {
         const subtotal = dueItems.reduce(
           (s, e) => s + (e.fund?.enabled ? fundCoverage(e).shortfall : Number(e.amount) || 0), 0
         );
+        const categoryTotal = items.reduce((s, e) => s + (Number(e.amount) || 0), 0);
         const share = planned > 0 ? Math.min(1, subtotal / planned) : 0;
         const meta = TYPE_META[g.type];
+        const open = isOpen(g.type);
+        const tagline =
+          g.type === "income"
+            ? `${formatMoney(subtotal, currency, { cents: false })} this cycle`
+            : `${formatMoney(subtotal, currency, { cents: false })} of ${formatMoney(categoryTotal, currency, { cents: false })} due this cycle`;
         return (
           <section key={g.type}>
             <div className="mb-2 px-1">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className={`flex h-7 w-7 items-center justify-center rounded-lg ${meta.tint}`}>
-                    <meta.Icon size={15} />
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => items.length > 0 && toggleSection(g.type)}
+                  className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                >
+                  <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${meta.tint}`}>
+                    <meta.Icon size={16} />
                   </span>
-                  <h2 className="font-display text-[20px] font-bold">{g.title}</h2>
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-display text-[20px] font-bold leading-tight">{g.title}</span>
+                    {items.length > 0 && (
+                      <span className="block text-[12px] text-muted tnum">{tagline}</span>
+                    )}
+                  </span>
                   {items.length > 0 && (
-                    <span className="text-[13px] font-medium text-muted tnum">{formatMoney(subtotal, currency, { cents: false })}</span>
+                    <ChevronDown size={16} className={`shrink-0 text-muted transition-transform ${open ? "rotate-180" : ""}`} />
                   )}
-                </div>
-                <button onClick={() => setAddType(g.type)} className="flex h-7 w-7 items-center justify-center rounded-full bg-elevated text-muted transition hover:text-iris">
+                </button>
+                <button onClick={() => setAddType(g.type)} className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-elevated text-muted transition hover:text-iris">
                   <Plus size={16} />
                 </button>
               </div>
@@ -214,7 +256,11 @@ export default function Plan() {
               )}
             </div>
 
-            {items.length > 0 ? (
+            {items.length === 0 ? (
+              <button onClick={() => setAddType(g.type)} className="w-full rounded-2xl border border-dashed border-line px-4 py-3 text-left text-[14px] font-medium text-muted transition hover:border-iris hover:text-iris">
+                Add {g.title.toLowerCase()}
+              </button>
+            ) : open ? (
               <Card className="divide-y divide-line/60 p-1">
                 {items.map((e) => {
                   const due = isDueInCycle(e, cycle);
@@ -260,11 +306,7 @@ export default function Plan() {
                   );
                 })}
               </Card>
-            ) : (
-              <button onClick={() => setAddType(g.type)} className="w-full rounded-2xl border border-dashed border-line px-4 py-3 text-left text-[14px] font-medium text-muted transition hover:border-iris hover:text-iris">
-                Add {g.title.toLowerCase()}
-              </button>
-            )}
+            ) : null}
           </section>
         );
       })}
