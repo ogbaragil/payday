@@ -81,6 +81,12 @@ export default function Plan() {
       : `${funded.length} future bills`;
   const setAsideSummary = `${formatMoney(fundedTotals.reserved, currency, { cents: false })} of ${formatMoney(fundedTotals.goal, currency, { cents: false })} reserved for ${fundedNames}`;
 
+  // Extra income now sits beside Payday income; its list expands below the row.
+  const incomeItems = byType.income || [];
+  const extraSubtotal = incomeItems
+    .filter((e) => isDueInCycle(e, cycle))
+    .reduce((s, e) => s + (Number(e.amount) || 0), 0);
+
   const saveIncome = async () => {
     await setIncome(Number(incomeDraft) || 0);
     setEditingIncome(false);
@@ -135,37 +141,94 @@ export default function Plan() {
         <Stat label="Available" value={formatMoney(summary.safe, currency, { cents: false })} accent={summary.safe < 0 ? "text-clay" : "text-jade"} />
       </Card>
 
-      {/* Income */}
-      <Card className="p-4">
-        <div className="flex items-center justify-between">
-          <p className="text-[13px] font-medium text-muted">Payday income</p>
-          {!editingIncome && (
-            <button
-              onClick={() => { setIncomeDraft(String(cycle.income || "")); setEditingIncome(true); }}
-              className="flex items-center gap-1 text-[13px] font-semibold text-iris"
-            >
-              <Pencil size={14} /> Edit
-            </button>
-          )}
-        </div>
-        {editingIncome ? (
-          <div className="mt-2 flex items-center gap-2">
-            <div className="flex flex-1 items-center gap-1 rounded-2xl border border-line px-4 py-2.5">
-              <span className="font-display text-2xl font-semibold text-muted">{currencySymbol(currency)}</span>
-              <input
-                autoFocus inputMode="decimal" value={incomeDraft}
-                onChange={(e) => setIncomeDraft(e.target.value.replace(/[^0-9.]/g, ""))}
-                className="w-full bg-transparent font-display text-2xl font-bold outline-none tnum"
-              />
-            </div>
-            <button onClick={saveIncome} className="rounded-2xl bg-iris px-4 py-3 text-[14px] font-semibold text-white shadow-iris">Save</button>
+      {/* Income — payday and extra side by side to save vertical space */}
+      <div className="grid grid-cols-2 gap-3 items-stretch">
+        {/* Payday income */}
+        <Card className="p-4">
+          <div className="flex items-center justify-between">
+            <p className="text-[13px] font-medium text-muted">Payday income</p>
+            {!editingIncome && (
+              <button
+                onClick={() => { setIncomeDraft(String(cycle.income || "")); setEditingIncome(true); }}
+                className="flex items-center gap-1 text-[13px] font-semibold text-iris"
+              >
+                <Pencil size={13} /> Edit
+              </button>
+            )}
           </div>
-        ) : (
-          <p className="mt-1 font-display text-[32px] font-extrabold tracking-tight tnum">
-            {formatMoney(cycle.income, currency, { cents: false })}
-          </p>
-        )}
-      </Card>
+          {editingIncome ? (
+            <div className="mt-2 space-y-2">
+              <div className="flex items-center gap-1 rounded-2xl border border-line px-3 py-2">
+                <span className="font-display text-2xl font-semibold text-muted">{currencySymbol(currency)}</span>
+                <input
+                  autoFocus inputMode="decimal" value={incomeDraft}
+                  onChange={(e) => setIncomeDraft(e.target.value.replace(/[^0-9.]/g, ""))}
+                  className="w-full bg-transparent font-display text-2xl font-bold outline-none tnum"
+                />
+              </div>
+              <button onClick={saveIncome} className="w-full rounded-2xl bg-iris py-2 text-[14px] font-semibold text-white shadow-iris">Save</button>
+            </div>
+          ) : (
+            <>
+              <p className="mt-1 font-display text-[32px] font-extrabold tracking-tight tnum">
+                {formatMoney(cycle.income, currency, { cents: false })}
+              </p>
+              <p className="text-[12px] text-faint">each payday</p>
+            </>
+          )}
+        </Card>
+
+        {/* Extra income */}
+        <Card className="p-4">
+          <div className="flex items-center justify-between">
+            <p className="text-[13px] font-medium text-muted">Extra income</p>
+            <button onClick={() => setAddType("income")} className="flex h-7 w-7 items-center justify-center rounded-full bg-elevated text-muted transition hover:text-iris">
+              <Plus size={15} />
+            </button>
+          </div>
+          {incomeItems.length > 0 ? (
+            <button onClick={() => toggleSection("income")} className="mt-1 flex w-full items-baseline justify-between text-left">
+              <span className="font-display text-[32px] font-extrabold tracking-tight tnum text-jade">
+                {formatMoney(extraSubtotal, currency, { cents: false })}
+              </span>
+              <ChevronDown size={16} className={`shrink-0 text-muted transition-transform ${isOpen("income") ? "rotate-180" : ""}`} />
+            </button>
+          ) : (
+            <p className="mt-1 font-display text-[32px] font-extrabold tracking-tight tnum text-muted">
+              {formatMoney(0, currency, { cents: false })}
+            </p>
+          )}
+          <p className="text-[12px] text-faint">this cycle</p>
+        </Card>
+      </div>
+
+      {/* Extra income items — expand below the row */}
+      {isOpen("income") && incomeItems.length > 0 && (
+        <Card className="divide-y divide-line/60 p-1">
+          {incomeItems.map((e) => {
+            const due = isDueInCycle(e, cycle);
+            const muted = !due;
+            const sub = e.dueDate
+              ? due
+                ? `Due ${relativeDay(e.dueDate)}`
+                : `Due ${formatDate(e.dueDate)} · later cycle`
+              : e.recurring
+              ? "Repeats each cycle"
+              : "";
+            return (
+              <button key={e.id} onClick={() => setEditing(e)} className={`flex w-full items-center justify-between px-3 py-3 text-left transition active:bg-elevated ${muted ? "opacity-55" : ""}`}>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[15px] font-semibold">{e.name}</span>
+                  <span className="block text-[12px] text-muted">{sub}</span>
+                </span>
+                <span className={`text-[15px] font-semibold tnum ${muted ? "text-muted" : "text-jade"}`}>
+                  +{formatMoney(e.amount, currency, { cents: false })}
+                </span>
+              </button>
+            );
+          })}
+        </Card>
+      )}
 
       {/* Set-aside goals — collapsed by default with a one-line summary */}
       {funded.length > 0 && (
@@ -210,7 +273,7 @@ export default function Plan() {
       )}
 
       {/* Grouped editable lists */}
-      {GROUPS.map((g) => {
+      {GROUPS.filter((g) => g.type !== "income").map((g) => {
         const items = byType[g.type] || [];
         const dueItems = items.filter((e) => isDueInCycle(e, cycle));
         const subtotal = dueItems.reduce(
