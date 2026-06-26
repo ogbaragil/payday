@@ -17,7 +17,11 @@ export function AppProvider({ children }) {
       const [p, c] = await Promise.all([db.getProfile(), db.getCurrentCycle()]);
       if (!active) return;
       setProfile(p);
-      setCycle(c);
+      // Advance any recurring item whose due date has slipped into a past cycle
+      // so the current cycle counts (and reserves for) it correctly.
+      const normalized = db.normalizeCycle(c, p);
+      if (normalized !== c) db.saveCycle(normalized).catch(() => {});
+      setCycle(normalized);
       setLoading(false);
     })();
     return () => {
@@ -30,7 +34,8 @@ export function AppProvider({ children }) {
   // the SAME cycle reference when nothing changed, so this can't loop.
   useEffect(() => {
     if (loading || !cycle || !profile) return;
-    const next = reconcileAutoFunds(cycle, profile);
+    let next = db.normalizeCycle(cycle, profile);
+    next = reconcileAutoFunds(next, profile);
     if (next !== cycle) {
       setCycle(next);
       db.saveCycle(next).catch(() => {});

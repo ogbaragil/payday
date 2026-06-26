@@ -30,7 +30,7 @@ export function isDueInCycle(expense, cycle) {
   const start = cycle?.startDate ? startOfDay(cycle.startDate) : null;
   const end = cycle?.nextPayday ? startOfDay(cycle.nextPayday) : null;
   if (start && due < start) return false;
-  if (end && due > end) return false;
+  if (end && due >= end) return false; // payday belongs to the next cycle
   return true;
 }
 
@@ -52,7 +52,7 @@ export function cyclesUntilDue(dueDateISO, cycle, payFrequency) {
   let winEnd = startOfDay(cycle.nextPayday);
   let n = 1;
   let guard = 0;
-  while (due > winEnd && guard < 600) {
+  while (due >= winEnd && guard < 600) {
     winEnd = startOfDay(addByFrequency(winEnd, payFrequency));
     n += 1;
     guard += 1;
@@ -96,33 +96,138 @@ export function rawFundContribution(expense, cycle, profile) {
   return remaining / Math.max(1, due - 1);
 }
 
-// The cycle-wide set-aside plan. We never reserve more than is actually free
-// this cycle (income − committed bills), so auto set-aside can't push you into
-// the red. When the raw asks for more than that leftover, every fund is scaled
-// down proportionally to fit. Returns per-expense allocations + the total.
-export function fundPlan(cycle, profile) {
-  const funded = (cycle?.expenses || []).filter(
-    (e) => e?.fund?.enabled && !isDueInCycle(e, cycle)
-  );
-  const raw = new Map();
-  let rawTotal = 0;
-  for (const e of funded) {
-    const c = rawFundContribution(e, cycle, profile);
-    if (c > 0) {
-      raw.set(e.id, c);
-      rawTotal += c;
+// --- Forward cash smoothing ------------------------------------------------
+// How many cycles ahead the set-aside engine looks when pre-building a buffer
+// for upcoming collisions (two big bills landing in one fortnight). ~4 months
+// is enough lead to smooth realistic timing clashes without hoarding for things
+// that are still far off.
+const SMOOTH_CYCLES = 8;
+
+function projWindows(cycle, payFrequency, n) {
+  const wins = [{ start: startOfDay(cycle.startDate), end: startOfDay(cycle.nextPayday) }];
+  for (let k = 1; k <= n; k++) {
+    const start = wins[k - 1].end;
+    wins.push({ start, end: startOfDay(addByFrequency(start, payFrequency)) });
+  }
+  return wins;
+}
+
+function* projOcc(e, payFrequency, from, to) {
+  if (!e.dueDate) return;
+  let d = startOfDay(e.dueDate);
+  const end = startOfDay(to);
+  const start = startOfDay(from);
+  if (!e.recurring) {
+    if (d >= start && d < end) yield d;
+    return;
+  }
+  const freq = e.frequency || payFrequency;
+  let guard = 0;
+  while (d < end && guard < 2000) {
+    if (d >= start) yield d;
+    d = startOfDay(addByFrequency(d, freq));
+    guard += 1;
+  }
+}
+
+// How much of THIS cycle's surplus must be held back so that no upcoming cycle
+// runs negative — i.e. carry forward today's spare cash to cover a future
+// collision. Projects gross committed costs ahead (advanced occurrence dates),
+// credits money already set aside, then asks: what's the deepest the running
+// balance dips in a future cycle? Hold that much now (capped by today's spare).
+export function smoothingHold(cycle, profile) {
+  if (!cycle?.expenses || !profile?.payFrequency) return 0;
+  const pay = profile.payFrequency;
+  const wins = projWindows(cycle, pay, SMOOTH_CYCLES);
+  const from = wins[0].start;
+  const to = wins[wins.length - 1].end;
+  const typical = Number(profile.typicalIncome) || Number(cycle.income) || 0;
+
+  const bills = wins.map(() => 0);
+  for (const e of cycle.expenses) {
+    if (!COMMITTED_TYPES.includes(e.type)) continue;
+    for (const d of projOcc(e, pay, from, to)) {
+      const i = wins.findIndex((w) => d >= w.start && d < w.end);
+      if (i >= 0) bills[i] += Number(e.amount) || 0;
     }
   }
-  const leftover = Math.max(0, totalIncome(cycle) - committedTotal(cycle, profile));
-  const scale = rawTotal > leftover && rawTotal > 0 ? leftover / rawTotal : 1;
-  const alloc = new Map();
-  let total = 0;
-  for (const [id, c] of raw) {
-    const v = c * scale;
-    alloc.set(id, v);
-    total += v;
+  // Credit what's already saved against each funded item's earliest occurrence.
+  for (const e of cycle.expenses) {
+    if (!e.fund?.enabled) continue;
+    let credit = Number(e.fund.accrued) || 0;
+    if (credit <= 0) continue;
+    for (const d of projOcc(e, pay, from, to)) {
+      const i = wins.findIndex((w) => d >= w.start && d < w.end);
+      if (i >= 0) {
+        const cut = Math.min(bills[i], credit);
+        bills[i] -= cut;
+        credit -= cut;
+        if (credit <= 0) break;
+      }
+    }
   }
-  return { alloc, total, leftover, rawTotal, scale, capped: scale < 1 };
+
+  const net0 = Math.max(0, totalIncome(cycle) - bills[0]);
+  let cum = 0;
+  let minFuture = Infinity;
+  for (let k = 1; k < wins.length; k++) {
+    cum += typical - bills[k];
+    minFuture = Math.min(minFuture, cum);
+  }
+  if (!isFinite(minFuture) || minFuture >= 0) return 0;
+  return Math.min(net0, -minFuture);
+}
+
+// The cycle-wide set-aside plan, per funded upcoming expense.
+//  • Baseline: each fund's steady-state slice (gentle, spread over time).
+//  • Collision buffer: if a future cycle would run short, set aside EXTRA now —
+//    routed to the soonest-due items first — to pre-build a buffer in the spare
+//    cycles before it (e.g. keep slices in July to cover an August clash).
+//  • Cap: never reserve more than is free this cycle, so it can't overdraw you.
+const _planCache = new WeakMap();
+export function fundPlan(cycle, profile) {
+  if (!cycle?.expenses || !profile) return { alloc: new Map(), total: 0, leftover: 0, hold: 0 };
+  const cached = _planCache.get(cycle);
+  if (cached && cached.profile === profile) return cached.plan;
+
+  const funded = cycle.expenses.filter((e) => e?.fund?.enabled && !isDueInCycle(e, cycle));
+  const items = funded
+    .map((e) => ({
+      id: e.id,
+      raw: rawFundContribution(e, cycle, profile),
+      remaining: Math.max(0, (Number(e.amount) || 0) - (Number(e.fund.accrued) || 0)),
+      due: cyclesUntilDue(e.dueDate, cycle, profile.payFrequency),
+    }))
+    .filter((it) => it.remaining > 0);
+
+  const rawTotal = items.reduce((s, it) => s + it.raw, 0);
+  const leftover = Math.max(0, totalIncome(cycle) - committedTotal(cycle, profile));
+  const hold = smoothingHold(cycle, profile);
+  const target = Math.min(leftover, Math.max(rawTotal, hold));
+
+  const alloc = new Map();
+  // Pass 1 — steady-state baseline (scaled down if even that won't fit).
+  const base = Math.min(target, rawTotal);
+  const scale = rawTotal > 0 ? base / rawTotal : 0;
+  for (const it of items) alloc.set(it.id, it.raw * scale);
+  // Pass 2 — collision buffer: route the extra to the soonest-due items first.
+  let extra = target - base;
+  if (extra > 0) {
+    const bySoonest = [...items].sort((a, b) => a.due - b.due || b.remaining - a.remaining);
+    for (const it of bySoonest) {
+      if (extra <= 0) break;
+      const room = it.remaining - (alloc.get(it.id) || 0);
+      const add = Math.min(extra, Math.max(0, room));
+      alloc.set(it.id, (alloc.get(it.id) || 0) + add);
+      extra -= add;
+    }
+  }
+  let total = 0;
+  for (const v of alloc.values()) total += v;
+
+  const plan = { alloc, total, leftover, rawTotal, hold };
+  _planCache.set(cycle, { profile, plan });
+  return plan;
 }
 
 // Effective per-cycle set-aside for one funded expense (after the cap above).
@@ -275,7 +380,7 @@ export function upcomingExpenses(cycle, ref = today()) {
     .filter((e) => {
       const due = startOfDay(e.dueDate);
       if (due < from) return false;
-      if (end && due > end) return false;
+      if (end && due >= end) return false;
       return true;
     })
     .sort((a, b) => startOfDay(a.dueDate) - startOfDay(b.dueDate));

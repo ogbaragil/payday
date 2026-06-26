@@ -112,6 +112,31 @@ export function nextPaydayFrom(date, frequency) {
   return addMonths(date, 1);
 }
 
+// Advance any recurring expense whose due date has slipped into a PAST cycle to
+// its next occurrence on/after the current cycle's start. A monthly bill dated
+// 19 Jun, viewed in a late-June cycle, becomes 19 Jul — so it's counted in the
+// cycle it actually lands in (and reserved for), instead of being skipped.
+// One-offs are left alone: a passed one-off is genuinely overdue, not recurring.
+export function normalizeCycle(cycle, profile) {
+  if (!cycle?.expenses || !profile?.payFrequency) return cycle;
+  const start = startOfDay(cycle.startDate);
+  let changed = false;
+  const expenses = cycle.expenses.map((e) => {
+    if (!e.recurring || !e.dueDate) return e;
+    let due = startOfDay(e.dueDate);
+    if (due >= start) return e;
+    const freq = e.frequency || profile.payFrequency;
+    let guard = 0;
+    while (startOfDay(due) < start && guard < 600) {
+      due = addByFrequency(due, freq);
+      guard += 1;
+    }
+    changed = true;
+    return { ...e, dueDate: toISODate(due) };
+  });
+  return changed ? { ...cycle, expenses } : cycle;
+}
+
 export function buildNextCycle(profile, previousCycle, overrides = {}) {
   const start = previousCycle?.nextPayday
     ? new Date(previousCycle.nextPayday)
