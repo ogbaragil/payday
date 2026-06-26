@@ -177,9 +177,20 @@ export default function Settings() {
       {/* Account + cloud sync */}
       <AccountCard onToast={flash} />
 
-      <p className="px-2 text-center text-[12px] text-faint">
-        SafeSpend · saved on this device
-      </p>
+      <footer className="px-2 pt-1 text-center">
+        <p className="font-display text-[18px] tracking-tight text-muted">
+          SafeSpend by{" "}
+          <a
+            href="https://ogbara.com.au"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-iris underline underline-offset-4"
+          >
+            Ogbara
+          </a>
+        </p>
+        <p className="mt-0.5 text-[13px] text-faint">Saved on this device</p>
+      </footer>
 
       {/* Toast */}
       {toast && (

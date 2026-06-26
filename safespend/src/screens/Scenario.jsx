@@ -70,18 +70,18 @@ export default function Scenario() {
         <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full opacity-50 blur-3xl" style={{ background: "radial-gradient(circle, rgb(88 68 244 / 0.5) 0%, transparent 70%)" }} />
         <div className="relative flex items-stretch justify-between gap-4">
           <div className="min-w-0">
-            <p className="text-[13px] font-medium text-white/60">{timing === "payday" ? "Available next cycle" : "Available today"}</p>
+            <p className="text-[13px] font-medium text-ink/60">{timing === "payday" ? "Available next cycle" : "Available today"}</p>
             <p className={`font-display text-[40px] font-extrabold leading-none tracking-tight tnum ${baseSafe < 0 ? "text-clay" : "text-mint"}`}>
               {formatMoney(baseSafe, currency, { cents: false })}
             </p>
-            <p className="mt-1.5 text-[12px] text-white/50">of {formatMoney(summary.income, currency, { cents: false })} this pay cycle</p>
+            <p className="mt-1.5 text-[12px] text-ink/50">of {formatMoney(summary.income, currency, { cents: false })} this pay cycle</p>
           </div>
-          <div className="shrink-0 border-l border-white/10 pl-4 text-right">
-            <p className="text-[13px] font-medium text-white/60">Impact on cycle</p>
-            <p className={`font-display text-[22px] font-extrabold tnum ${!has ? "text-white/80" : safeAfter < 0 ? "text-clay" : "text-mint"}`}>
+          <div className="shrink-0 border-l border-ink/10 pl-4 text-right">
+            <p className="text-[13px] font-medium text-ink/60">Impact on cycle</p>
+            <p className={`font-display text-[22px] font-extrabold tnum ${!has ? "text-ink/80" : safeAfter < 0 ? "text-clay" : "text-mint"}`}>
               {has ? formatMoney(safeAfter, currency, { cents: false }) : "—"}
             </p>
-            <p className="text-[11px] text-white/45">remaining</p>
+            <p className="text-[11px] text-ink/45">remaining</p>
             {has && (
               <span className={`mt-1 inline-flex items-center gap-1 text-[12px] font-semibold ${safeAfter < 0 ? "text-clay" : "text-mint"}`}>
                 {safeAfter < 0 ? "Over budget" : "Still on track"} {safeAfter >= 0 && <CheckCircle2 size={13} />}

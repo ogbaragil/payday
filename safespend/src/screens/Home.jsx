@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Plus, ArrowDownLeft, RefreshCw, ChevronRight, ArrowUpRight,
-  CalendarCheck, TrendingUp, Receipt, PiggyBank, Telescope, Star, Trash2,
+  CalendarCheck, TrendingUp, Receipt, PiggyBank, Telescope, Star, Trash2, Sun, Moon,
 } from "lucide-react";
 import SafeSpendCard from "../components/SafeSpendCard.jsx";
 import ExpenseSheet from "../components/ExpenseSheet.jsx";
@@ -16,6 +16,7 @@ import { cycleSummary, upcomingExpenses } from "../lib/calculations.js";
 import { forwardLookSummary } from "../lib/planner.js";
 import { formatMoney, formatDate, today, daysBetween, relativeTime } from "../lib/format.js";
 import { firstNameFrom } from "../lib/user.js";
+import { getTheme, toggleTheme } from "../lib/theme.js";
 
 function StatCard({ icon: Icon, tint, label, value, caption }) {
   return (
@@ -37,6 +38,7 @@ export default function Home() {
   const [sheet, setSheet] = useState(null);
   const [newCycle, setNewCycle] = useState(false);
   const [spendSheet, setSpendSheet] = useState(false);
+  const [theme, setTheme] = useState(getTheme());
 
   const summary = useMemo(() => cycleSummary(cycle, profile), [cycle, profile]);
   const forward = useMemo(() => {
@@ -62,11 +64,17 @@ export default function Home() {
 
   return (
     <div className="space-y-5">
-      <header className="px-1 pt-1">
+      <header className="flex items-start justify-between px-1 pt-1">
         <h1 className="font-display text-[34px] font-bold tracking-tight leading-tight">
           {greeting} <span className="inline-block">👋</span>
         </h1>
-        <p className="text-[14px] text-muted">Here's your payday snapshot</p>
+        <button
+          onClick={() => setTheme(toggleTheme())}
+          aria-label={theme === "light" ? "Switch to dark theme" : "Switch to light theme"}
+          className="chalk-hairline mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-ink transition active:scale-95"
+        >
+          {theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
+        </button>
       </header>
 
       {summary.complete ? (
@@ -95,9 +103,9 @@ export default function Home() {
         />
       )}
 
-      {/* Today's focus */}
+      {/* Today's focus — taps through to the full timeline */}
       {!summary.complete && (
-        <Card className="flex items-stretch gap-4 p-4">
+        <Card as="button" onClick={() => navigate("/timeline")} className="flex w-full items-stretch gap-4 p-4 text-left transition active:scale-[0.99]">
           <div className="flex min-w-0 flex-1 items-start gap-3">
             <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${todayBills.length ? "bg-iris-soft text-iris" : "bg-mint-soft text-jade"}`}>
               <CalendarCheck size={20} />

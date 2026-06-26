@@ -17,13 +17,13 @@ export default function SafeSpendCard({ summary, currency, daysSince, daysLeft, 
       />
       <div className="relative">
         <div className="flex items-start justify-between">
-          <span className="flex items-center gap-1.5 text-[13px] font-medium text-white/65">
-            Available today <Info size={13} className="text-white/40" />
+          <span className="flex items-center gap-1.5 text-[13px] font-medium text-ink/65">
+            Available today <Info size={13} className="text-ink/40" />
           </span>
           {onDetails && (
             <button
               onClick={onDetails}
-              className="flex items-center gap-0.5 rounded-full bg-white/10 px-3 py-1.5 text-[12px] font-semibold text-white/85 transition active:scale-95"
+              className="flex items-center gap-0.5 rounded-full bg-ink/10 px-3 py-1.5 text-[12px] font-semibold text-ink/85 transition active:scale-95"
             >
               View details <ChevronRight size={14} />
             </button>
@@ -40,7 +40,7 @@ export default function SafeSpendCard({ summary, currency, daysSince, daysLeft, 
             </span>
           )}
         </div>
-        <p className="mt-2 text-[13px] text-white/55">
+        <p className="mt-2 text-[13px] text-ink/55">
           {negative ? (
             <>You're over by {formatMoney(Math.abs(summary.safe), currency)} this cycle.</>
           ) : (
@@ -49,19 +49,19 @@ export default function SafeSpendCard({ summary, currency, daysSince, daysLeft, 
         </p>
 
         <div className="mt-5">
-          <div className="relative h-2.5 w-full overflow-hidden rounded-full bg-white/12">
+          <div className="relative h-2.5 w-full overflow-hidden rounded-full bg-ink/12">
             <div
               className="h-full rounded-full bg-mint chalk-edge transition-[width] duration-700 ease-out"
               style={{ width: `${Math.max(5, pct)}%` }}
             />
           </div>
           <div className="mt-2.5 flex items-center justify-between text-[12px]">
-            <span className="text-white/55">
-              <span className="font-semibold text-white/80 tnum">{daysSince}</span> days since payday
+            <span className="text-ink/55">
+              <span className="font-semibold text-ink/80 tnum">{daysSince}</span> days since payday
             </span>
-            <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-bold text-white/80 tnum">{pct}%</span>
-            <span className="text-white/55 tnum">
-              <span className="font-semibold text-white/80">{daysLeft}</span> days until payday
+            <span className="rounded-full bg-ink/10 px-2 py-0.5 text-[11px] font-bold text-ink/80 tnum">{pct}%</span>
+            <span className="text-ink/55 tnum">
+              <span className="font-semibold text-ink/80">{daysLeft}</span> days until payday
             </span>
           </div>
         </div>

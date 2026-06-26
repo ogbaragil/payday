@@ -70,28 +70,28 @@ export default function Plan() {
         />
         <div className="relative flex items-center justify-between gap-4">
           <div className="min-w-0">
-            <p className="text-[13px] font-medium text-white/65">Planned to spend</p>
+            <p className="text-[13px] font-medium text-ink/65">Planned to spend</p>
             <p className="mt-1 font-display text-[40px] font-extrabold leading-none tracking-tight tnum">
               {formatMoney(planned, currency, { cents: false })}
             </p>
-            <p className="mt-1.5 text-[13px] text-white/55">
+            <p className="mt-1.5 text-[13px] text-ink/55">
               of {formatMoney(summary.income, currency, { cents: false })} income
             </p>
           </div>
-          <ProgressRing value={plannedPct} size={92} stroke={9} color="rgb(88 68 244)">
-            <span className="font-display text-[20px] font-extrabold text-white tnum">{Math.round(plannedPct * 100)}%</span>
-            <span className="text-[10px] font-medium text-white/55">planned</span>
+          <ProgressRing value={plannedPct} size={92} stroke={9} color="rgb(var(--iris))">
+            <span className="font-display text-[20px] font-extrabold text-ink tnum">{Math.round(plannedPct * 100)}%</span>
+            <span className="text-[10px] font-medium text-ink/55">planned</span>
           </ProgressRing>
         </div>
-        <div className="relative mt-5 flex items-center justify-between border-t border-white/10 pt-4 text-[13px]">
-          <span className="text-white/60">
+        <div className="relative mt-5 flex items-center justify-between border-t border-ink/10 pt-4 text-[13px]">
+          <span className="text-ink/60">
             <span className={`font-bold tnum ${summary.safe < 0 ? "text-clay" : "text-mint"}`}>
               {formatMoney(summary.safe, currency, { cents: false })}
             </span>{" "}
             available today
           </span>
-          <span className="text-white/60 tnum">
-            <span className="font-bold text-white/90">{formatMoney(summary.income, currency, { cents: false })}</span> income
+          <span className="text-ink/60 tnum">
+            <span className="font-bold text-ink/90">{formatMoney(summary.income, currency, { cents: false })}</span> income
           </span>
         </div>
       </div>

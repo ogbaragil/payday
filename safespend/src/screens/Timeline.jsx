@@ -47,29 +47,29 @@ export default function Timeline() {
         <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full opacity-50 blur-3xl" style={{ background: "radial-gradient(circle, rgb(38 201 126 / 0.4) 0%, transparent 70%)" }} />
         <div className="relative flex items-center justify-between gap-4">
           <div>
-            <p className="text-[13px] font-medium text-white/60">Days until payday</p>
+            <p className="text-[13px] font-medium text-ink/60">Days until payday</p>
             <p className="font-display text-[44px] font-extrabold leading-none tracking-tight tnum">{daysLeft}</p>
-            <p className="mt-1 text-[13px] text-white/55">{formatDate(cycle.nextPayday, { weekday: "short", day: "numeric", month: "short" })}</p>
+            <p className="mt-1 text-[13px] text-ink/55">{formatDate(cycle.nextPayday, { weekday: "short", day: "numeric", month: "short" })}</p>
           </div>
-          <div className="border-l border-white/10 pl-4">
-            <p className="text-[13px] font-medium text-white/60">Available today</p>
+          <div className="border-l border-ink/10 pl-4">
+            <p className="text-[13px] font-medium text-ink/60">Available today</p>
             <p className={`font-display text-[26px] font-extrabold tnum ${summary.safe < 0 ? "text-clay" : "text-mint"}`}>
               {formatMoney(summary.safe, currency, { cents: false })}
             </p>
-            <p className="text-[12px] text-white/45">safe to spend</p>
+            <p className="text-[12px] text-ink/45">safe to spend</p>
           </div>
-          <ProgressRing value={summary.progress || 0} size={78} stroke={8} color="rgb(38 201 126)">
-            <span className="font-display text-[17px] font-extrabold text-white tnum">{pct}%</span>
-            <span className="text-[9px] text-white/55">of cycle</span>
+          <ProgressRing value={summary.progress || 0} size={78} stroke={8} color="rgb(var(--mint))">
+            <span className="font-display text-[17px] font-extrabold text-ink tnum">{pct}%</span>
+            <span className="text-[9px] text-ink/55">of cycle</span>
           </ProgressRing>
         </div>
         <div className="relative mt-5">
-          <div className="h-2 w-full overflow-hidden rounded-full bg-white/12">
+          <div className="h-2 w-full overflow-hidden rounded-full bg-ink/12">
             <div className="h-full rounded-full bg-mint chalk-edge" style={{ width: `${Math.max(5, pct)}%` }} />
           </div>
-          <div className="mt-2 flex justify-between text-[12px] text-white/55">
-            <span><span className="font-semibold text-white/80 tnum">{daysSince}</span> days since payday</span>
-            <span className="tnum"><span className="font-semibold text-white/80">{daysLeft}</span> days to payday</span>
+          <div className="mt-2 flex justify-between text-[12px] text-ink/55">
+            <span><span className="font-semibold text-ink/80 tnum">{daysSince}</span> days since payday</span>
+            <span className="tnum"><span className="font-semibold text-ink/80">{daysLeft}</span> days to payday</span>
           </div>
         </div>
       </div>

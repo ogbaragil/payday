@@ -4,7 +4,7 @@ export default function ProgressRing({
   value = 0,
   size = 84,
   stroke = 8,
-  track = "rgba(255,255,255,0.14)",
+  track = "rgb(var(--line) / 0.5)",
   color = "rgb(var(--mint))",
   children,
 }) {
