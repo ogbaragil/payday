@@ -120,6 +120,24 @@ export function AppProvider({ children }) {
     [cycle]
   );
 
+  // Skip (or un-skip) just this cycle's occurrence of an expense. The recurrence
+  // is untouched — it returns next cycle. Skipped items stop counting toward the
+  // money totals but stay visible on the timeline.
+  const toggleSkip = useCallback(
+    async (expenseId) => {
+      if (!cycle) return;
+      const next = {
+        ...cycle,
+        expenses: cycle.expenses.map((e) =>
+          e.id === expenseId ? { ...e, skipped: !e.skipped } : e
+        ),
+      };
+      setCycle(next);
+      await db.saveCycle(next);
+    },
+    [cycle]
+  );
+
   const setIncome = useCallback(
     async (income) => {
       if (!cycle) return;
@@ -208,6 +226,7 @@ export function AppProvider({ children }) {
       addExpense,
       editExpense,
       removeExpense,
+      toggleSkip,
       setIncome,
       logSpend,
       removeSpend,
@@ -219,7 +238,7 @@ export function AppProvider({ children }) {
     }),
     [
       loading, profile, cycle, completeOnboarding, updateProfile, addExpense,
-      editExpense, removeExpense, setIncome, logSpend, removeSpend, startNewCycle, loadDemo,
+      editExpense, removeExpense, toggleSkip, setIncome, logSpend, removeSpend, startNewCycle, loadDemo,
       exportData, importData, resetData,
     ]
   );

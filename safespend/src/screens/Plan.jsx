@@ -84,7 +84,7 @@ export default function Plan() {
   // Extra income now sits beside Payday income; its list expands below the row.
   const incomeItems = byType.income || [];
   const extraSubtotal = incomeItems
-    .filter((e) => isDueInCycle(e, cycle))
+    .filter((e) => isDueInCycle(e, cycle) && !e.skipped)
     .reduce((s, e) => s + (Number(e.amount) || 0), 0);
 
   const saveIncome = async () => {
@@ -207,8 +207,11 @@ export default function Plan() {
         <Card className="divide-y divide-line/60 p-1">
           {incomeItems.map((e) => {
             const due = isDueInCycle(e, cycle);
-            const muted = !due;
-            const sub = e.dueDate
+            const skipped = Boolean(e.skipped);
+            const muted = !due || skipped;
+            const sub = skipped
+              ? "Skipped this cycle"
+              : e.dueDate
               ? due
                 ? `Due ${relativeDay(e.dueDate)}`
                 : `Due ${formatDate(e.dueDate)} · later cycle`
@@ -218,10 +221,10 @@ export default function Plan() {
             return (
               <button key={e.id} onClick={() => setEditing(e)} className={`flex w-full items-center justify-between px-3 py-3 text-left transition active:bg-elevated ${muted ? "opacity-55" : ""}`}>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[15px] font-semibold">{e.name}</span>
-                  <span className="block text-[12px] text-muted">{sub}</span>
+                  <span className={`block truncate text-[15px] font-semibold ${skipped ? "line-through decoration-1" : ""}`}>{e.name}</span>
+                  <span className={`block text-[12px] ${skipped ? "text-amber" : "text-muted"}`}>{sub}</span>
                 </span>
-                <span className={`text-[15px] font-semibold tnum ${muted ? "text-muted" : "text-jade"}`}>
+                <span className={`text-[15px] font-semibold tnum ${muted ? "text-muted" : "text-jade"} ${skipped ? "line-through decoration-1" : ""}`}>
                   +{formatMoney(e.amount, currency, { cents: false })}
                 </span>
               </button>
@@ -275,7 +278,7 @@ export default function Plan() {
       {/* Grouped editable lists */}
       {GROUPS.filter((g) => g.type !== "income").map((g) => {
         const items = byType[g.type] || [];
-        const dueItems = items.filter((e) => isDueInCycle(e, cycle));
+        const dueItems = items.filter((e) => isDueInCycle(e, cycle) && !e.skipped);
         const subtotal = dueItems.reduce(
           (s, e) => s + (e.fund?.enabled ? fundCoverage(e).shortfall : Number(e.amount) || 0), 0
         );
@@ -329,12 +332,13 @@ export default function Plan() {
               <Card className="divide-y divide-line/60 p-1">
                 {items.map((e) => {
                   const due = isDueInCycle(e, cycle);
+                  const skipped = Boolean(e.skipped);
                   const isFunded =
                     Boolean(e.fund?.enabled) &&
                     ((Number(e.fund.accrued) || 0) > 0 || fundContribution(e, cycle, profile) > 0);
                   // Anything landing in a later cycle is greyed — including funded
                   // (set-aside) items — so "this cycle" reads at a glance.
-                  const muted = !due;
+                  const muted = !due || skipped;
                   // Due-date is the primary info. The per-cycle set-aside amount
                   // lives in the Set-aside progress card above, so rows just show
                   // a small "set aside" marker rather than repeating the figure.
@@ -345,26 +349,27 @@ export default function Plan() {
                     : e.recurring
                     ? "Repeats each cycle"
                     : "";
-                  if (isFunded && due) {
+                  if (isFunded && due && !skipped) {
                     const { shortfall } = fundCoverage(e);
                     sub = shortfall > 0
                       ? `${sub} · fund covers the rest`
                       : `${sub} · covered by fund`;
                   }
+                  if (skipped) sub = "Skipped this cycle";
                   return (
                     <button key={e.id} onClick={() => setEditing(e)} className={`flex w-full items-center justify-between px-3 py-3 text-left transition active:bg-elevated ${muted ? "opacity-55" : ""}`}>
                       <span className="min-w-0 flex-1">
                         <span className="flex items-center gap-1.5">
-                          <span className="truncate text-[15px] font-semibold">{e.name}</span>
-                          {isFunded && (
+                          <span className={`truncate text-[15px] font-semibold ${skipped ? "line-through decoration-1" : ""}`}>{e.name}</span>
+                          {isFunded && !skipped && (
                             <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-amber-soft px-1.5 py-0.5 text-[10px] font-bold text-amber">
                               <PiggyBank size={10} /> Set aside
                             </span>
                           )}
                         </span>
-                        <span className="block text-[12px] text-muted">{sub}</span>
+                        <span className={`block text-[12px] ${skipped ? "text-amber" : "text-muted"}`}>{sub}</span>
                       </span>
-                      <span className={`text-[15px] font-semibold tnum ${muted ? "text-muted" : ""}`}>
+                      <span className={`text-[15px] font-semibold tnum ${muted ? "text-muted" : ""} ${skipped ? "line-through decoration-1" : ""}`}>
                         {formatMoney(e.amount, currency, { cents: false })}
                       </span>
                     </button>

@@ -200,7 +200,8 @@ export function buildNextCycle(profile, previousCycle, overrides = {}) {
         const freq = e.frequency || profile.payFrequency;
         if (startOfDay(due) < startOfDay(start)) {
           // Due in the cycle that just ended → fund pays it, carry any surplus.
-          if (funded) accrued = Math.max(0, accrued - amount);
+          // A skipped occurrence didn't happen, so the reserve stays put.
+          if (funded && !e.skipped) accrued = Math.max(0, accrued - amount);
           let guard = 0;
           while (startOfDay(due) < startOfDay(start) && guard < 600) {
             due = addByFrequency(due, freq);
@@ -210,14 +211,15 @@ export function buildNextCycle(profile, previousCycle, overrides = {}) {
           // Not yet due → bank the set-aside made during the cycle that just ended.
           accrued += fundContribution(e, previousCycle, profile);
         }
-        const next = makeExpense({ ...e, id: uid(), frequency: freq, dueDate: toISODate(due) });
+        // skipped is a one-cycle override — the next occurrence starts active.
+        const next = makeExpense({ ...e, id: uid(), frequency: freq, dueDate: toISODate(due), skipped: false });
         if (e.fund) next.fund = { enabled: funded, accrued, auto: Boolean(e.fund.auto) };
         return next;
       }
 
       // One-off, still upcoming → carry forward; accrue toward it if funded.
       if (funded) accrued += fundContribution(e, previousCycle, profile);
-      const next = makeExpense({ ...e, id: uid(), dueDate: toISODate(due) });
+      const next = makeExpense({ ...e, id: uid(), dueDate: toISODate(due), skipped: false });
       if (e.fund) next.fund = { enabled: funded, accrued, auto: Boolean(e.fund.auto) };
       return next;
     });

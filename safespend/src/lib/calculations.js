@@ -36,7 +36,7 @@ export function isDueInCycle(expense, cycle) {
 
 // Expenses actually due within the current cycle window.
 export function expensesInCycle(cycle) {
-  return (cycle?.expenses || []).filter((e) => isDueInCycle(e, cycle));
+  return (cycle?.expenses || []).filter((e) => !e.skipped && isDueInCycle(e, cycle));
 }
 
 // --- Sinking funds -------------------------------------------------------
@@ -220,7 +220,7 @@ export function fundPlan(cycle, profile) {
   if (cached && cached.profile === profile) return cached.plan;
 
   const items = cycle.expenses
-    .filter((e) => e?.fund?.enabled && !isDueInCycle(e, cycle))
+    .filter((e) => e?.fund?.enabled && !e.skipped && !isDueInCycle(e, cycle))
     .map((e) => {
       const n = fundNeed(e, cycle, profile);
       return { id: e.id, perCycle: n.perCycle, remaining: n.remaining };
@@ -251,7 +251,7 @@ export function fundPlan(cycle, profile) {
 // Only meaningful for expenses that belong to `cycle`; for a standalone estimate
 // in the editor, use fundNeed instead.
 export function fundContribution(expense, cycle, profile) {
-  if (!expense?.fund?.enabled || isDueInCycle(expense, cycle)) return 0;
+  if (!expense?.fund?.enabled || expense.skipped || isDueInCycle(expense, cycle)) return 0;
   return fundPlan(cycle, profile).alloc.get(expense.id) || 0;
 }
 

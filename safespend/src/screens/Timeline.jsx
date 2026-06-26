@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, ArrowDownLeft, SlidersHorizontal, CheckCircle2, Star, ShieldCheck } from "lucide-react";
+import { Plus, ArrowDownLeft, SlidersHorizontal, CheckCircle2, Star, ShieldCheck, Ban } from "lucide-react";
 import ExpenseSheet from "../components/ExpenseSheet.jsx";
 import { Card } from "../components/ui/Card.jsx";
 import ProgressRing from "../components/ui/ProgressRing.jsx";
@@ -19,7 +19,7 @@ function QuickAction({ icon: Icon, label, tint, onClick }) {
 }
 
 export default function Timeline() {
-  const { cycle, currency, profile } = useApp();
+  const { cycle, currency, profile, toggleSkip } = useApp();
   const navigate = useNavigate();
   const [editing, setEditing] = useState(null);
   const [adding, setAdding] = useState(null); // 'bill' | 'income'
@@ -104,7 +104,8 @@ export default function Timeline() {
           <div className="space-y-1">
             {timelineRows.map(({ e, done }) => {
               const { Icon, label } = typeMeta(e.type);
-              const accent = done
+              const skipped = Boolean(e.skipped);
+              const accent = (done || skipped)
                 ? "text-faint border-line/60"
                 : e.type === "income" ? "text-jade border-jade/60"
                 : e.type === "saving" ? "text-amber border-amber/60"
@@ -120,21 +121,34 @@ export default function Timeline() {
                 : dd === 1 ? "Tomorrow"
                 : `In ${dd} days`;
               return (
-                <button key={e.id} onClick={() => setEditing(e)} className={`relative flex w-full items-center gap-3 py-2.5 text-left ${done ? "opacity-55" : ""}`}>
-                  <span className={`relative z-10 flex h-[50px] w-[50px] shrink-0 items-center justify-center rounded-full border-[1.6px] bg-bg chalk-edge ${accent}`}>
-                    <Icon size={20} />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-display text-[19px] leading-tight">{e.name}</span>
-                    <span className="block text-[14px] text-muted">{label}</span>
-                  </span>
-                  <span className="text-right">
-                    <span className={`block font-display text-[19px] leading-tight tnum ${done ? "text-muted" : isIncome ? "text-jade" : "text-ink"}`}>
-                      {isIncome ? "+" : "−"}{formatMoney(e.amount, currency, { cents: false })}
+                <div key={e.id} className={`relative flex items-center gap-2 py-2.5 ${done && !skipped ? "opacity-55" : ""} ${skipped ? "opacity-50" : ""}`}>
+                  <button onClick={() => setEditing(e)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
+                    <span className={`relative z-10 flex h-[50px] w-[50px] shrink-0 items-center justify-center rounded-full border-[1.6px] bg-bg chalk-edge ${accent}`}>
+                      <Icon size={20} />
                     </span>
-                    <span className="block text-[13px] text-muted">{whenText}</span>
-                  </span>
-                </button>
+                    <span className="min-w-0 flex-1">
+                      <span className={`block truncate font-display text-[19px] leading-tight ${skipped ? "line-through decoration-1" : ""}`}>{e.name}</span>
+                      <span className="block text-[14px]">
+                        {skipped ? <span className="text-amber">Skipped this cycle</span> : <span className="text-muted">{label}</span>}
+                      </span>
+                    </span>
+                    <span className="text-right">
+                      <span className={`block font-display text-[19px] leading-tight tnum ${skipped ? "text-muted line-through decoration-1" : done ? "text-muted" : isIncome ? "text-jade" : "text-ink"}`}>
+                        {isIncome ? "+" : "−"}{formatMoney(e.amount, currency, { cents: false })}
+                      </span>
+                      <span className="block text-[13px] text-muted">{whenText}</span>
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => toggleSkip(e.id)}
+                    aria-label={skipped ? "Bring this back" : "Skip this occurrence"}
+                    className={`relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-[1.4px] transition-colors ${
+                      skipped ? "border-amber/60 text-amber" : "border-line/70 text-faint hover:text-muted"
+                    }`}
+                  >
+                    <Ban size={15} />
+                  </button>
+                </div>
               );
             })}
 

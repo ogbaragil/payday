@@ -29,7 +29,7 @@ export default function Home() {
     try { return forwardLookSummary(cycle, profile, 12); } catch { return null; }
   }, [cycle, profile]);
   const upcoming = useMemo(
-    () => upcomingExpenses(cycle).filter((e) => daysBetween(today(), e.dueDate) >= 0),
+    () => upcomingExpenses(cycle).filter((e) => !e.skipped && daysBetween(today(), e.dueDate) >= 0),
     [cycle]
   );
 
