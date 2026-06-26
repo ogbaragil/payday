@@ -87,7 +87,7 @@ export default function Settings() {
   return (
     <div className="space-y-5">
       <header className="px-1 pt-1">
-        <h1 className="font-display text-[22px] font-bold tracking-tight">Settings</h1>
+        <h1 className="font-display text-[34px] font-bold tracking-tight leading-tight">Settings</h1>
         <p className="text-[14px] text-muted">Tune SafeSpend to your pay</p>
       </header>
 
@@ -184,8 +184,8 @@ export default function Settings() {
       {/* Toast */}
       {toast && (
         <div className="fixed inset-x-0 bottom-24 z-50 flex justify-center px-6">
-          <div className="flex items-center gap-2 rounded-full bg-ink px-4 py-2.5 text-[14px] font-semibold text-white shadow-hero animate-fade-up">
-            <Check size={16} className="text-[#7fe3c2]" /> {toast}
+          <div className="flex items-center gap-2 rounded-full border border-line/70 bg-elevated px-4 py-2.5 text-[15px] text-ink animate-fade-up">
+            <Check size={16} className="text-mint" /> {toast}
           </div>
         </div>
       )}

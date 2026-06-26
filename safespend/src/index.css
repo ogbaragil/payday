@@ -4,40 +4,40 @@
 
 @layer base {
   :root {
-    /* Cool, soft canvas */
-    --bg: 244 245 248;
-    --surface: 255 255 255;
-    --elevated: 247 248 251;
-    --ink: 17 20 27;
-    --muted: 112 118 130;
-    --faint: 158 164 175;
-    --line: 229 231 237;
+    /* ---- Chalkboard canvas ---- */
+    --bg: 12 12 13;          /* slate board */
+    --surface: 24 25 28;     /* faintly lifted (inputs, inner fills) */
+    --elevated: 33 35 39;    /* chips, field wells, pressed states */
+    --ink: 236 234 227;      /* warm chalk white */
+    --muted: 167 170 176;    /* dusty chalk grey */
+    --faint: 112 115 121;    /* faded chalk */
+    --line: 86 90 97;        /* chalk hairline */
 
-    /* Primary: electric iris (actions, nav, brand) */
-    --iris: 88 68 244;
-    --iris-soft: 236 234 254;
+    /* Primary: violet chalk (actions, nav, brand) */
+    --iris: 171 145 250;
+    --iris-soft: 46 40 70;
 
-    /* Near-black hero surface */
-    --hero: 14 17 24;
-    --hero-2: 26 30 41;
+    /* Hero surfaces blend into the board now */
+    --hero: 12 12 13;
+    --hero-2: 20 21 24;
 
-    /* Positive money — deep on light, mint on dark */
-    --jade: 17 125 94;
-    --jade-soft: 224 244 236;
-    --mint: 38 201 126;
-    --mint-soft: 222 247 235;
+    /* Positive money — bright chalk green */
+    --jade: 126 217 87;
+    --jade-soft: 30 50 32;
+    --mint: 126 217 87;
+    --mint-soft: 30 50 32;
 
-    /* Category accent */
-    --blue: 56 130 246;
-    --blue-soft: 224 237 254;
+    /* Category accents */
+    --blue: 95 168 245;
+    --blue-soft: 26 42 64;
 
-    --amber: 197 126 22;
-    --amber-soft: 250 240 221;
+    --amber: 230 184 92;
+    --amber-soft: 56 47 26;
 
-    --clay: 199 84 60;
-    --clay-soft: 250 232 227;
+    --clay: 232 130 92;
+    --clay-soft: 58 36 28;
 
-    color-scheme: light;
+    color-scheme: dark;
   }
 
   * {
@@ -50,18 +50,30 @@
 
   body {
     margin: 0;
-    background: rgb(var(--bg));
     color: rgb(var(--ink));
-    font-family: Inter, system-ui, -apple-system, sans-serif;
+    font-family: "Patrick Hand", ui-rounded, system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
     overscroll-behavior-y: none;
+    /* Chalkboard: dark slate with faint chalk-dust grain + corner vignette */
+    background-color: #0c0c0d;
+    background-image:
+      radial-gradient(120% 90% at 50% -10%, rgba(70, 74, 82, 0.16) 0%, transparent 55%),
+      radial-gradient(100% 80% at 100% 110%, rgba(40, 44, 50, 0.18) 0%, transparent 60%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+    background-attachment: fixed;
   }
 
-  /* Tabular figures for all money so digits never jitter */
+  /* Chalk has a soft, slightly-glowing edge */
+  body {
+    text-shadow: 0 0 1px rgba(236, 234, 227, 0.10);
+  }
+
+  /* Caveat runs large; nudge numerals so money reads clearly */
   .tnum {
-    font-feature-settings: "tnum" 1, "cv01" 1;
+    font-feature-settings: "tnum" 1;
     font-variant-numeric: tabular-nums;
+    letter-spacing: 0.01em;
   }
 
   button {
@@ -79,6 +91,57 @@
   }
 }
 
+@layer components {
+  /* ---- Signature: a card that looks DRAWN on the board ----
+     Transparent fill so the slate shows through; the outline lives on a
+     filtered pseudo-element so the chalk wobble never distorts the text. */
+  .chalk-card {
+    position: relative;
+    background: transparent;
+    border-radius: 22px;
+  }
+  .chalk-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    border: 1.6px solid rgba(236, 234, 227, 0.52);
+    filter: url(#chalkRough);
+    pointer-events: none;
+  }
+  /* Quieter outline for nested / secondary boxes */
+  .chalk-hairline {
+    position: relative;
+  }
+  .chalk-hairline::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    border: 1.4px solid rgba(236, 234, 227, 0.28);
+    filter: url(#chalkRough);
+    pointer-events: none;
+  }
+  /* Dashed "add" wells */
+  .chalk-dashed {
+    position: relative;
+  }
+  .chalk-dashed::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    border: 1.6px dashed currentColor;
+    opacity: 0.55;
+    filter: url(#chalkRough);
+    pointer-events: none;
+  }
+  /* Apply chalk roughness to an element's own border (chips, rings, bars) */
+  .chalk-edge {
+    filter: url(#chalkRough);
+  }
+}
+
 @layer utilities {
   .safe-bottom {
     padding-bottom: calc(env(safe-area-inset-bottom) + 0px);
@@ -86,7 +149,6 @@
   .safe-top {
     padding-top: env(safe-area-inset-top);
   }
-  /* Hide scrollbars on horizontal chip rows */
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }

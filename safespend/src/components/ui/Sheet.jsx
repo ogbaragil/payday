@@ -21,13 +21,13 @@ export default function Sheet({ open, onClose, title, children, footer }) {
       <button
         aria-label="Close"
         onClick={onClose}
-        className="absolute inset-0 bg-ink/40 backdrop-blur-[2px] animate-[fade-up_0.2s_ease]"
+        className="absolute inset-0 bg-black/65 backdrop-blur-[2px] animate-[fade-up_0.2s_ease]"
       />
       <div
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="relative z-10 flex max-h-[92dvh] w-full flex-col rounded-t-4xl bg-surface shadow-hero animate-sheet-up sm:max-w-md sm:rounded-4xl"
+        className="relative z-10 flex max-h-[92dvh] w-full flex-col rounded-t-4xl border-t border-line/70 bg-surface animate-sheet-up sm:max-w-md sm:rounded-4xl sm:border"
       >
         <div className="flex items-center justify-between px-5 pt-4 pb-2">
           <div className="mx-auto h-1.5 w-10 rounded-full bg-line sm:hidden" />

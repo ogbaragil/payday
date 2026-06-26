@@ -10,7 +10,7 @@ export default function SafeSpendCard({ summary, currency, daysSince, daysLeft, 
   const pct = Math.round((summary.progress || 0) * 100);
 
   return (
-    <div className="relative overflow-hidden rounded-[28px] bg-hero p-6 text-white shadow-hero">
+    <div className="relative overflow-hidden chalk-card p-6 text-ink">
       <div
         className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full opacity-50 blur-3xl"
         style={{ background: "radial-gradient(circle, rgb(88 68 244 / 0.5) 0%, transparent 70%)" }}
@@ -51,7 +51,7 @@ export default function SafeSpendCard({ summary, currency, daysSince, daysLeft, 
         <div className="mt-5">
           <div className="relative h-2.5 w-full overflow-hidden rounded-full bg-white/12">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-[#34d27a] to-[#23b46a] transition-[width] duration-700 ease-out"
+              className="h-full rounded-full bg-mint chalk-edge transition-[width] duration-700 ease-out"
               style={{ width: `${Math.max(5, pct)}%` }}
             />
           </div>

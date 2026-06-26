@@ -63,7 +63,7 @@ export default function Home() {
   return (
     <div className="space-y-5">
       <header className="px-1 pt-1">
-        <h1 className="font-display text-[24px] font-extrabold tracking-tight">
+        <h1 className="font-display text-[34px] font-bold tracking-tight leading-tight">
           {greeting} <span className="inline-block">👋</span>
         </h1>
         <p className="text-[14px] text-muted">Here's your payday snapshot</p>
@@ -106,14 +106,14 @@ export default function Home() {
               <p className="text-[12px] font-semibold uppercase tracking-wide text-muted">Today's focus</p>
               {todayBills.length ? (
                 <>
-                  <p className="font-display text-[16px] font-bold">{todayBills.length} due today</p>
+                  <p className="font-display text-[20px] font-bold">{todayBills.length} due today</p>
                   <p className="truncate text-[13px] text-muted">
                     {todayBills.map((b) => b.name).join(", ")}
                   </p>
                 </>
               ) : (
                 <>
-                  <p className="font-display text-[16px] font-bold">You're all good today</p>
+                  <p className="font-display text-[20px] font-bold">You're all good today</p>
                   <p className="text-[13px] text-muted">No bills due. Enjoy your day.</p>
                 </>
               )}
@@ -153,14 +153,14 @@ export default function Home() {
 
       {/* Quick actions */}
       <div className="grid grid-cols-3 gap-3">
-        <button onClick={() => setSheet("expense")} className="flex flex-col items-center gap-1.5 rounded-2xl bg-iris py-3.5 text-white shadow-iris transition active:scale-[0.97]">
-          <Plus size={19} /><span className="text-[12px] font-semibold">Add expense</span>
+        <button onClick={() => setSheet("expense")} className="chalk-hairline flex flex-col items-center gap-1.5 rounded-2xl py-3.5 text-iris transition active:scale-[0.97]">
+          <Plus size={19} /><span className="font-display text-[16px]">Add expense</span>
         </button>
-        <button onClick={() => setSheet("income")} className="flex flex-col items-center gap-1.5 rounded-2xl bg-surface py-3.5 shadow-card transition active:scale-[0.97]">
-          <ArrowDownLeft size={19} /><span className="text-[12px] font-semibold">Add income</span>
+        <button onClick={() => setSheet("income")} className="chalk-hairline flex flex-col items-center gap-1.5 rounded-2xl py-3.5 text-ink transition active:scale-[0.97]">
+          <ArrowDownLeft size={19} /><span className="font-display text-[16px]">Add income</span>
         </button>
-        <button onClick={() => setNewCycle(true)} className="flex flex-col items-center gap-1.5 rounded-2xl bg-surface py-3.5 shadow-card transition active:scale-[0.97]">
-          <RefreshCw size={19} /><span className="text-[12px] font-semibold">New cycle</span>
+        <button onClick={() => setNewCycle(true)} className="chalk-hairline flex flex-col items-center gap-1.5 rounded-2xl py-3.5 text-ink transition active:scale-[0.97]">
+          <RefreshCw size={19} /><span className="font-display text-[16px]">New cycle</span>
         </button>
       </div>
 
@@ -168,7 +168,7 @@ export default function Home() {
       {!summary.complete && (
         <section>
           <div className="mb-2 flex items-center justify-between px-1">
-            <h2 className="font-display text-[16px] font-bold tracking-tight">Spending money</h2>
+            <h2 className="font-display text-[20px] font-bold tracking-tight">Spending money</h2>
             <button onClick={() => setSpendSheet(true)} className="flex items-center gap-0.5 text-[13px] font-semibold text-iris">
               <Plus size={15} /> Log a spend
             </button>
@@ -222,7 +222,7 @@ export default function Home() {
       {/* Upcoming */}
       <section>
         <div className="mb-2 flex items-center justify-between px-1">
-          <h2 className="font-display text-[16px] font-bold tracking-tight">Upcoming</h2>
+          <h2 className="font-display text-[20px] font-bold tracking-tight">Upcoming</h2>
           <button onClick={() => navigate("/timeline")} className="flex items-center gap-0.5 text-[13px] font-semibold text-iris">
             View timeline <ArrowUpRight size={15} />
           </button>

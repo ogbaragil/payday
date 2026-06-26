@@ -29,8 +29,8 @@ export default {
         "clay-soft": "rgb(var(--clay-soft) / <alpha-value>)",
       },
       fontFamily: {
-        display: ["'Plus Jakarta Sans'", "system-ui", "sans-serif"],
-        sans: ["Inter", "system-ui", "sans-serif"],
+        display: ["Caveat", "ui-rounded", "system-ui", "cursive"],
+        sans: ["'Patrick Hand'", "ui-rounded", "system-ui", "sans-serif"],
       },
       borderRadius: {
         xl: "1rem",

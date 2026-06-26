@@ -58,12 +58,12 @@ export default function Plan() {
   return (
     <div className="space-y-5">
       <header className="px-1 pt-1">
-        <h1 className="font-display text-[24px] font-extrabold tracking-tight">My payday plan</h1>
+        <h1 className="font-display text-[34px] font-bold tracking-tight leading-tight">My payday plan</h1>
         <p className="text-[14px] text-muted">Where this pay cycle is going</p>
       </header>
 
       {/* Hero — planned ring */}
-      <div className="relative overflow-hidden rounded-[28px] bg-hero p-6 text-white shadow-hero">
+      <div className="relative overflow-hidden chalk-card p-6 text-ink">
         <div
           className="pointer-events-none absolute -left-16 -bottom-20 h-56 w-56 rounded-full opacity-50 blur-3xl"
           style={{ background: "radial-gradient(circle, rgb(88 68 244 / 0.55) 0%, transparent 70%)" }}
@@ -141,27 +141,33 @@ export default function Plan() {
         <section>
           <div className="mb-2 flex items-center gap-2 px-1">
             <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-soft text-amber"><Target size={15} /></span>
-            <h2 className="font-display text-[16px] font-bold">Set-aside progress</h2>
+            <h2 className="font-display text-[20px] font-bold">Set-aside progress</h2>
           </div>
           <Card className="space-y-4 p-4">
             {funded.map((e) => {
               const accrued = Number(e.fund.accrued) || 0;
               const amount = Number(e.amount) || 0;
-              const pct = amount > 0 ? Math.min(1, accrued / amount) : 0;
               const per = fundContribution(e, cycle, profile);
+              // Optimistic progress: count what's banked PLUS what this cycle is
+              // already reserving (capped at the goal). The set-aside lowers
+              // safe-to-spend now, so it should show on the bar now — it only
+              // banks into `accrued` at the next payday rollover.
+              const reserved = Math.min(amount, accrued + per);
+              const pct = amount > 0 ? Math.min(1, reserved / amount) : 0;
+              const justReserved = per > 0 && accrued <= 0;
               return (
                 <div key={e.id}>
                   <div className="flex items-baseline justify-between">
-                    <span className="text-[14px] font-semibold">{e.name}</span>
-                    <span className="text-[13px] text-muted tnum">
-                      {formatMoney(accrued, currency, { cents: false })} / {formatMoney(amount, currency, { cents: false })}
+                    <span className="text-[15px]">{e.name}</span>
+                    <span className="text-[14px] text-muted tnum">
+                      {formatMoney(reserved, currency, { cents: false })} / {formatMoney(amount, currency, { cents: false })}
                     </span>
                   </div>
-                  <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-elevated">
-                    <div className="h-full rounded-full bg-amber transition-[width] duration-500" style={{ width: `${Math.max(3, pct * 100)}%` }} />
+                  <div className="mt-1.5 h-2.5 w-full overflow-hidden rounded-full bg-elevated">
+                    <div className="h-full rounded-full bg-amber chalk-edge transition-[width] duration-500" style={{ width: `${Math.max(3, pct * 100)}%` }} />
                   </div>
-                  <p className="mt-1 text-[11px] text-faint tnum">
-                    {Math.round(pct * 100)}% · setting aside {formatMoney(per, currency, { cents: false })}/cycle
+                  <p className="mt-1 text-[13px] text-faint tnum">
+                    {Math.round(pct * 100)}%{justReserved ? " reserved" : ""} · setting aside {formatMoney(per, currency, { cents: false })}/cycle
                   </p>
                 </div>
               );
@@ -187,7 +193,7 @@ export default function Plan() {
                   <span className={`flex h-7 w-7 items-center justify-center rounded-lg ${meta.tint}`}>
                     <meta.Icon size={15} />
                   </span>
-                  <h2 className="font-display text-[16px] font-bold">{g.title}</h2>
+                  <h2 className="font-display text-[20px] font-bold">{g.title}</h2>
                   {items.length > 0 && (
                     <span className="text-[13px] font-medium text-muted tnum">{formatMoney(subtotal, currency, { cents: false })}</span>
                   )}

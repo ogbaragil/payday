@@ -61,12 +61,12 @@ export default function Scenario() {
   return (
     <div className="space-y-5">
       <header className="px-1 pt-1">
-        <h1 className="font-display text-[24px] font-extrabold tracking-tight">Can I buy this?</h1>
+        <h1 className="font-display text-[34px] font-bold tracking-tight leading-tight">Can I buy this?</h1>
         <p className="text-[14px] text-muted">Check if a purchase fits in your plan</p>
       </header>
 
       {/* Hero */}
-      <div className="relative overflow-hidden rounded-[28px] bg-hero p-6 text-white shadow-hero">
+      <div className="relative overflow-hidden chalk-card p-6 text-ink">
         <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full opacity-50 blur-3xl" style={{ background: "radial-gradient(circle, rgb(88 68 244 / 0.5) 0%, transparent 70%)" }} />
         <div className="relative flex items-stretch justify-between gap-4">
           <div className="min-w-0">

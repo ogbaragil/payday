@@ -11,9 +11,9 @@ import { formatMoney, formatDate, relativeDay, toISODate, today, daysBetween } f
 
 function QuickAction({ icon: Icon, label, tint, onClick }) {
   return (
-    <button onClick={onClick} className="flex flex-1 flex-col items-center gap-1.5 rounded-2xl bg-surface py-3 shadow-card transition active:scale-[0.97]">
+    <button onClick={onClick} className="chalk-hairline flex flex-1 flex-col items-center gap-1.5 rounded-2xl py-3 transition active:scale-[0.97]">
       <span className={`flex h-9 w-9 items-center justify-center rounded-xl ${tint}`}><Icon size={17} /></span>
-      <span className="text-[11px] font-semibold">{label}</span>
+      <span className="font-display text-[15px]">{label}</span>
     </button>
   );
 }
@@ -38,12 +38,12 @@ export default function Timeline() {
   return (
     <div className="space-y-5">
       <header className="px-1 pt-1">
-        <h1 className="font-display text-[24px] font-extrabold tracking-tight">Timeline</h1>
+        <h1 className="font-display text-[34px] font-bold tracking-tight leading-tight">Timeline</h1>
         <p className="text-[14px] text-muted">What's coming up this pay cycle</p>
       </header>
 
       {/* Hero */}
-      <div className="relative overflow-hidden rounded-[28px] bg-hero p-6 text-white shadow-hero">
+      <div className="relative overflow-hidden chalk-card p-6 text-ink">
         <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full opacity-50 blur-3xl" style={{ background: "radial-gradient(circle, rgb(38 201 126 / 0.4) 0%, transparent 70%)" }} />
         <div className="relative flex items-center justify-between gap-4">
           <div>
@@ -65,7 +65,7 @@ export default function Timeline() {
         </div>
         <div className="relative mt-5">
           <div className="h-2 w-full overflow-hidden rounded-full bg-white/12">
-            <div className="h-full rounded-full bg-gradient-to-r from-[#34d27a] to-[#23b46a]" style={{ width: `${Math.max(5, pct)}%` }} />
+            <div className="h-full rounded-full bg-mint chalk-edge" style={{ width: `${Math.max(5, pct)}%` }} />
           </div>
           <div className="mt-2 flex justify-between text-[12px] text-white/55">
             <span><span className="font-semibold text-white/80 tnum">{daysSince}</span> days since payday</span>
@@ -75,7 +75,7 @@ export default function Timeline() {
       </div>
 
       <div className="flex items-center justify-between px-1">
-        <h2 className="font-display text-[16px] font-bold">Upcoming bills & events</h2>
+        <h2 className="font-display text-[20px] font-bold">Upcoming bills & events</h2>
       </div>
 
       {/* Today status */}
@@ -87,42 +87,54 @@ export default function Timeline() {
         </div>
       </div>
 
-      {/* The list */}
+      {/* The connected timeline — a chalk line threading the day's events */}
       {items.length > 0 && (
-        <div className="space-y-2.5">
-          {items.map((e) => {
-            const { Icon, tint, label } = typeMeta(e.type);
-            const isIncome = e.type === "income";
-            const dd = daysBetween(today(), e.dueDate);
-            const dueText = dd <= 0 ? "Today" : dd === 1 ? "Tomorrow" : `In ${dd} days`;
-            return (
-              <button key={e.id} onClick={() => setEditing(e)} className="flex w-full items-center gap-3 rounded-2xl bg-surface p-3.5 text-left shadow-card transition active:scale-[0.99]">
-                <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${tint}`}>
-                  <Icon size={19} />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[15px] font-bold">{e.name}</span>
-                  <span className="block text-[12px] text-muted">{label}</span>
-                </span>
-                <span className="text-right">
-                  <span className={`block text-[15px] font-bold tnum ${isIncome ? "text-jade" : "text-ink"}`}>
-                    {isIncome ? "+" : "−"}{formatMoney(e.amount, currency, { cents: false })}
+        <div className="relative pl-1">
+          {/* the vertical chalk thread */}
+          <div className="pointer-events-none absolute bottom-3 left-[26px] top-3 w-px bg-line/60 chalk-edge" />
+          <div className="space-y-1">
+            {items.map((e) => {
+              const { Icon, label } = typeMeta(e.type);
+              const accent =
+                e.type === "income" ? "text-jade border-jade/60"
+                : e.type === "saving" ? "text-amber border-amber/60"
+                : e.type === "spending" ? "text-blue border-blue/60"
+                : e.type === "debt" ? "text-clay border-clay/60"
+                : "text-iris border-iris/60";
+              const isIncome = e.type === "income";
+              const dd = daysBetween(today(), e.dueDate);
+              const dueText = dd <= 0 ? "Today" : dd === 1 ? "Tomorrow" : `In ${dd} days`;
+              return (
+                <button key={e.id} onClick={() => setEditing(e)} className="relative flex w-full items-center gap-3 py-2.5 text-left">
+                  <span className={`relative z-10 flex h-[50px] w-[50px] shrink-0 items-center justify-center rounded-full border-[1.6px] bg-bg chalk-edge ${accent}`}>
+                    <Icon size={20} />
                   </span>
-                  <span className="block text-[11px] text-muted">{dueText}</span>
-                </span>
-                <ChevronRight size={16} className="ml-1 shrink-0 text-faint" />
-              </button>
-            );
-          })}
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-display text-[19px] leading-tight">{e.name}</span>
+                    <span className="block text-[14px] text-muted">{label}</span>
+                  </span>
+                  <span className="text-right">
+                    <span className={`block font-display text-[19px] leading-tight tnum ${isIncome ? "text-jade" : "text-ink"}`}>
+                      {isIncome ? "+" : "−"}{formatMoney(e.amount, currency, { cents: false })}
+                    </span>
+                    <span className="block text-[13px] text-muted">{dueText}</span>
+                  </span>
+                </button>
+              );
+            })}
 
-          {/* Payday */}
-          <div className="flex items-center gap-3 rounded-2xl bg-iris-soft p-3.5">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-iris text-white"><Star size={19} /></span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-[15px] font-bold text-iris">Payday</span>
-              <span className="block text-[12px] text-iris/70 tnum">{formatMoney(cycle.income, currency, { cents: false })} estimated</span>
-            </span>
-            <span className="text-[12px] font-semibold text-iris">{formatDate(cycle.nextPayday, { day: "numeric", month: "short" })}</span>
+            {/* Payday — end of the thread */}
+            <div className="relative flex items-center gap-3 py-2.5">
+              <span className="relative z-10 flex h-[50px] w-[50px] shrink-0 items-center justify-center rounded-full border-[1.6px] border-jade/70 bg-bg text-jade chalk-edge"><Star size={20} /></span>
+              <span className="min-w-0 flex-1">
+                <span className="block font-display text-[19px] leading-tight text-jade">Payday</span>
+                <span className="block text-[14px] text-muted tnum">{formatMoney(cycle.income, currency, { cents: false })} estimated</span>
+              </span>
+              <span className="text-right">
+                <span className="block font-display text-[19px] leading-tight text-jade tnum">+{formatMoney(cycle.income, currency, { cents: false })}</span>
+                <span className="block text-[13px] text-muted">{formatDate(cycle.nextPayday, { day: "numeric", month: "short" })}</span>
+              </span>
+            </div>
           </div>
         </div>
       )}
